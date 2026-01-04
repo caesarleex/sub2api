@@ -173,7 +173,7 @@
               </button>
               <!-- Import to CC Switch Button -->
               <button
-                @click="importToCcswitch(row.key)"
+                @click="importToCcswitch(row)"
                 class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
               >
                 <svg
@@ -335,12 +335,14 @@
               />
               <span v-else class="text-gray-400">{{ t('keys.selectGroup') }}</span>
             </template>
-            <template #option="{ option }">
-              <GroupBadge
+            <template #option="{ option, selected }">
+              <GroupOptionItem
                 :name="(option as unknown as GroupOption).label"
                 :platform="(option as unknown as GroupOption).platform"
                 :subscription-type="(option as unknown as GroupOption).subscriptionType"
                 :rate-multiplier="(option as unknown as GroupOption).rate"
+                :description="(option as unknown as GroupOption).description"
+                :selected="selected"
               />
             </template>
           </Select>
@@ -453,6 +455,49 @@
       @close="closeUseKeyModal"
     />
 
+    <!-- CCS Client Selection Dialog for Antigravity -->
+    <BaseDialog
+      :show="showCcsClientSelect"
+      :title="t('keys.ccsClientSelect.title')"
+      width="narrow"
+      @close="closeCcsClientSelect"
+    >
+      <div class="space-y-4">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          {{ t('keys.ccsClientSelect.description') }}
+        </p>
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            @click="handleCcsClientSelect('claude')"
+            class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+          >
+            <svg class="w-8 h-8 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 17.25V6.75A2.25 2.25 0 0 0 18.75 4.5H5.25A2.25 2.25 0 0 0 3 6.75v10.5A2.25 2.25 0 0 0 5.25 20.25Z" />
+            </svg>
+            <span class="font-medium text-gray-900 dark:text-white">{{ t('keys.ccsClientSelect.claudeCode') }}</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('keys.ccsClientSelect.claudeCodeDesc') }}</span>
+          </button>
+          <button
+            @click="handleCcsClientSelect('gemini')"
+            class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+          >
+            <svg class="w-8 h-8 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+            </svg>
+            <span class="font-medium text-gray-900 dark:text-white">{{ t('keys.ccsClientSelect.geminiCli') }}</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('keys.ccsClientSelect.geminiCliDesc') }}</span>
+          </button>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end">
+          <button @click="closeCcsClientSelect" class="btn btn-secondary">
+            {{ t('common.cancel') }}
+          </button>
+        </div>
+      </template>
+    </BaseDialog>
+
     <!-- Group Selector Dropdown (Teleported to body to avoid overflow clipping) -->
     <Teleport to="body">
       <div
@@ -473,26 +518,19 @@
                 ? 'bg-primary-50 dark:bg-primary-900/20'
                 : 'hover:bg-gray-100 dark:hover:bg-dark-700'
             ]"
+            :title="option.description || undefined"
           >
-            <GroupBadge
+            <GroupOptionItem
               :name="option.label"
               :platform="option.platform"
               :subscription-type="option.subscriptionType"
               :rate-multiplier="option.rate"
-            />
-            <svg
-              v-if="
+              :description="option.description"
+              :selected="
                 selectedKeyForGroup?.group_id === option.value ||
                 (!selectedKeyForGroup?.group_id && option.value === null)
               "
-              class="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            />
           </button>
         </div>
       </div>
@@ -519,6 +557,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import Select from '@/components/common/Select.vue'
 import UseKeyModal from '@/components/keys/UseKeyModal.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
+import GroupOptionItem from '@/components/common/GroupOptionItem.vue'
 import type { ApiKey, Group, PublicSettings, SubscriptionType, GroupPlatform } from '@/types'
 import type { Column } from '@/components/common/types'
 import type { BatchApiKeyUsageStats } from '@/api/usage'
@@ -527,6 +566,7 @@ import { formatDateTime } from '@/utils/format'
 interface GroupOption {
   value: number
   label: string
+  description: string | null
   rate: number
   subscriptionType: SubscriptionType
   platform: GroupPlatform
@@ -563,6 +603,8 @@ const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteDialog = ref(false)
 const showUseKeyModal = ref(false)
+const showCcsClientSelect = ref(false)
+const pendingCcsRow = ref<ApiKey | null>(null)
 const selectedKey = ref<ApiKey | null>(null)
 const copiedKeyId = ref<number | null>(null)
 const groupSelectorKeyId = ref<number | null>(null)
@@ -620,6 +662,7 @@ const groupOptions = computed(() =>
   groups.value.map((group) => ({
     value: group.id,
     label: group.name,
+    description: group.description,
     rate: group.rate_multiplier,
     subscriptionType: group.subscription_type,
     platform: group.platform
@@ -871,8 +914,48 @@ const closeModals = () => {
   }
 }
 
-const importToCcswitch = (apiKey: string) => {
+const importToCcswitch = (row: ApiKey) => {
+  const platform = row.group?.platform || 'anthropic'
+
+  // For antigravity platform, show client selection dialog
+  if (platform === 'antigravity') {
+    pendingCcsRow.value = row
+    showCcsClientSelect.value = true
+    return
+  }
+
+  // For other platforms, execute directly
+  executeCcsImport(row, platform === 'gemini' ? 'gemini' : 'claude')
+}
+
+const executeCcsImport = (row: ApiKey, clientType: 'claude' | 'gemini') => {
   const baseUrl = publicSettings.value?.api_base_url || window.location.origin
+  const platform = row.group?.platform || 'anthropic'
+
+  // Determine app name and endpoint based on platform and client type
+  let app: string
+  let endpoint: string
+
+  if (platform === 'antigravity') {
+    // Antigravity always uses /antigravity suffix
+    app = clientType === 'gemini' ? 'gemini' : 'claude'
+    endpoint = `${baseUrl}/antigravity`
+  } else {
+    switch (platform) {
+      case 'openai':
+        app = 'codex'
+        endpoint = baseUrl
+        break
+      case 'gemini':
+        app = 'gemini'
+        endpoint = baseUrl
+        break
+      default: // anthropic
+        app = 'claude'
+        endpoint = baseUrl
+    }
+  }
+
   const usageScript = `({
     request: {
       url: "{{baseUrl}}/v1/usage",
@@ -889,11 +972,11 @@ const importToCcswitch = (apiKey: string) => {
   })`
   const params = new URLSearchParams({
     resource: 'provider',
-    app: 'claude',
+    app: app,
     name: 'sub2api',
     homepage: baseUrl,
-    endpoint: baseUrl,
-    apiKey: apiKey,
+    endpoint: endpoint,
+    apiKey: row.key,
     configFormat: 'json',
     usageEnabled: 'true',
     usageScript: btoa(usageScript),
@@ -914,6 +997,19 @@ const importToCcswitch = (apiKey: string) => {
   } catch (error) {
     appStore.showError(t('keys.ccSwitchNotInstalled'))
   }
+}
+
+const handleCcsClientSelect = (clientType: 'claude' | 'gemini') => {
+  if (pendingCcsRow.value) {
+    executeCcsImport(pendingCcsRow.value, clientType)
+  }
+  showCcsClientSelect.value = false
+  pendingCcsRow.value = null
+}
+
+const closeCcsClientSelect = () => {
+  showCcsClientSelect.value = false
+  pendingCcsRow.value = null
 }
 
 onMounted(() => {
