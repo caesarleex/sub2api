@@ -24,7 +24,7 @@ type AdminService interface {
 	GetUserUsageStats(ctx context.Context, userID int64, period string) (any, error)
 
 	// Group management
-	ListGroups(ctx context.Context, page, pageSize int, platform, status string, isExclusive *bool) ([]Group, int64, error)
+	ListGroups(ctx context.Context, page, pageSize int, platform, status, search string, isExclusive *bool) ([]Group, int64, error)
 	GetAllGroups(ctx context.Context) ([]Group, error)
 	GetAllGroupsByPlatform(ctx context.Context, platform string) ([]Group, error)
 	GetGroup(ctx context.Context, id int64) (*Group, error)
@@ -168,6 +168,7 @@ type BulkUpdateAccountsInput struct {
 	Concurrency *int
 	Priority    *int
 	Status      string
+	Schedulable *bool
 	GroupIDs    *[]int64
 	Credentials map[string]any
 	Extra       map[string]any
@@ -185,9 +186,11 @@ type BulkUpdateAccountResult struct {
 
 // BulkUpdateAccountsResult is the aggregated response for bulk updates.
 type BulkUpdateAccountsResult struct {
-	Success int                       `json:"success"`
-	Failed  int                       `json:"failed"`
-	Results []BulkUpdateAccountResult `json:"results"`
+	Success    int                       `json:"success"`
+	Failed     int                       `json:"failed"`
+	SuccessIDs []int64                   `json:"success_ids"`
+	FailedIDs  []int64                   `json:"failed_ids"`
+	Results    []BulkUpdateAccountResult `json:"results"`
 }
 
 type CreateProxyInput struct {
@@ -243,14 +246,15 @@ type ProxyExitInfoProber interface {
 
 // adminServiceImpl implements AdminService
 type adminServiceImpl struct {
-	userRepo            UserRepository
-	groupRepo           GroupRepository
-	accountRepo         AccountRepository
-	proxyRepo           ProxyRepository
-	apiKeyRepo          APIKeyRepository
-	redeemCodeRepo      RedeemCodeRepository
-	billingCacheService *BillingCacheService
-	proxyProber         ProxyExitInfoProber
+	userRepo             UserRepository
+	groupRepo            GroupRepository
+	accountRepo          AccountRepository
+	proxyRepo            ProxyRepository
+	apiKeyRepo           APIKeyRepository
+	redeemCodeRepo       RedeemCodeRepository
+	billingCacheService  *BillingCacheService
+	proxyProber          ProxyExitInfoProber
+	authCacheInvalidator APIKeyAuthCacheInvalidator
 }
 
 // NewAdminService creates a new AdminService
@@ -263,16 +267,18 @@ func NewAdminService(
 	redeemCodeRepo RedeemCodeRepository,
 	billingCacheService *BillingCacheService,
 	proxyProber ProxyExitInfoProber,
+	authCacheInvalidator APIKeyAuthCacheInvalidator,
 ) AdminService {
 	return &adminServiceImpl{
-		userRepo:            userRepo,
-		groupRepo:           groupRepo,
-		accountRepo:         accountRepo,
-		proxyRepo:           proxyRepo,
-		apiKeyRepo:          apiKeyRepo,
-		redeemCodeRepo:      redeemCodeRepo,
-		billingCacheService: billingCacheService,
-		proxyProber:         proxyProber,
+		userRepo:             userRepo,
+		groupRepo:            groupRepo,
+		accountRepo:          accountRepo,
+		proxyRepo:            proxyRepo,
+		apiKeyRepo:           apiKeyRepo,
+		redeemCodeRepo:       redeemCodeRepo,
+		billingCacheService:  billingCacheService,
+		proxyProber:          proxyProber,
+		authCacheInvalidator: authCacheInvalidator,
 	}
 }
 
@@ -322,6 +328,8 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 	}
 
 	oldConcurrency := user.Concurrency
+	oldStatus := user.Status
+	oldRole := user.Role
 
 	if input.Email != "" {
 		user.Email = input.Email
@@ -353,6 +361,11 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
+	}
+	if s.authCacheInvalidator != nil {
+		if user.Concurrency != oldConcurrency || user.Status != oldStatus || user.Role != oldRole {
+			s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, user.ID)
+		}
 	}
 
 	concurrencyDiff := user.Concurrency - oldConcurrency
@@ -392,6 +405,9 @@ func (s *adminServiceImpl) DeleteUser(ctx context.Context, id int64) error {
 		log.Printf("delete user failed: user_id=%d err=%v", id, err)
 		return err
 	}
+	if s.authCacheInvalidator != nil {
+		s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, id)
+	}
 	return nil
 }
 
@@ -419,6 +435,10 @@ func (s *adminServiceImpl) UpdateUserBalance(ctx context.Context, userID int64, 
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
 	}
+	balanceDiff := user.Balance - oldBalance
+	if s.authCacheInvalidator != nil && balanceDiff != 0 {
+		s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, userID)
+	}
 
 	if s.billingCacheService != nil {
 		go func() {
@@ -430,7 +450,6 @@ func (s *adminServiceImpl) UpdateUserBalance(ctx context.Context, userID int64, 
 		}()
 	}
 
-	balanceDiff := user.Balance - oldBalance
 	if balanceDiff != 0 {
 		code, err := GenerateRedeemCode()
 		if err != nil {
@@ -478,9 +497,9 @@ func (s *adminServiceImpl) GetUserUsageStats(ctx context.Context, userID int64, 
 }
 
 // Group management implementations
-func (s *adminServiceImpl) ListGroups(ctx context.Context, page, pageSize int, platform, status string, isExclusive *bool) ([]Group, int64, error) {
+func (s *adminServiceImpl) ListGroups(ctx context.Context, page, pageSize int, platform, status, search string, isExclusive *bool) ([]Group, int64, error) {
 	params := pagination.PaginationParams{Page: page, PageSize: pageSize}
-	groups, result, err := s.groupRepo.ListWithFilters(ctx, params, platform, status, isExclusive)
+	groups, result, err := s.groupRepo.ListWithFilters(ctx, params, platform, status, search, isExclusive)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -575,18 +594,33 @@ func (s *adminServiceImpl) validateFallbackGroup(ctx context.Context, currentGro
 		return fmt.Errorf("cannot set self as fallback group")
 	}
 
-	// 检查降级分组是否存在
-	fallbackGroup, err := s.groupRepo.GetByID(ctx, fallbackGroupID)
-	if err != nil {
-		return fmt.Errorf("fallback group not found: %w", err)
-	}
+	visited := map[int64]struct{}{}
+	nextID := fallbackGroupID
+	for {
+		if _, seen := visited[nextID]; seen {
+			return fmt.Errorf("fallback group cycle detected")
+		}
+		visited[nextID] = struct{}{}
+		if currentGroupID > 0 && nextID == currentGroupID {
+			return fmt.Errorf("fallback group cycle detected")
+		}
 
-	// 降级分组不能启用 claude_code_only，否则会造成死循环
-	if fallbackGroup.ClaudeCodeOnly {
-		return fmt.Errorf("fallback group cannot have claude_code_only enabled")
-	}
+		// 检查降级分组是否存在
+		fallbackGroup, err := s.groupRepo.GetByIDLite(ctx, nextID)
+		if err != nil {
+			return fmt.Errorf("fallback group not found: %w", err)
+		}
 
-	return nil
+		// 降级分组不能启用 claude_code_only，否则会造成死循环
+		if nextID == fallbackGroupID && fallbackGroup.ClaudeCodeOnly {
+			return fmt.Errorf("fallback group cannot have claude_code_only enabled")
+		}
+
+		if fallbackGroup.FallbackGroupID == nil {
+			return nil
+		}
+		nextID = *fallbackGroup.FallbackGroupID
+	}
 }
 
 func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *UpdateGroupInput) (*Group, error) {
@@ -659,10 +693,21 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	if err := s.groupRepo.Update(ctx, group); err != nil {
 		return nil, err
 	}
+	if s.authCacheInvalidator != nil {
+		s.authCacheInvalidator.InvalidateAuthCacheByGroupID(ctx, id)
+	}
 	return group, nil
 }
 
 func (s *adminServiceImpl) DeleteGroup(ctx context.Context, id int64) error {
+	var groupKeys []string
+	if s.authCacheInvalidator != nil {
+		keys, err := s.apiKeyRepo.ListKeysByGroupID(ctx, id)
+		if err == nil {
+			groupKeys = keys
+		}
+	}
+
 	affectedUserIDs, err := s.groupRepo.DeleteCascade(ctx, id)
 	if err != nil {
 		return err
@@ -680,6 +725,11 @@ func (s *adminServiceImpl) DeleteGroup(ctx context.Context, id int64) error {
 				}
 			}
 		}()
+	}
+	if s.authCacheInvalidator != nil {
+		for _, key := range groupKeys {
+			s.authCacheInvalidator.InvalidateAuthCacheByKey(ctx, key)
+		}
 	}
 
 	return nil
@@ -869,7 +919,9 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 // It merges credentials/extra keys instead of overwriting the whole object.
 func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUpdateAccountsInput) (*BulkUpdateAccountsResult, error) {
 	result := &BulkUpdateAccountsResult{
-		Results: make([]BulkUpdateAccountResult, 0, len(input.AccountIDs)),
+		SuccessIDs: make([]int64, 0, len(input.AccountIDs)),
+		FailedIDs:  make([]int64, 0, len(input.AccountIDs)),
+		Results:    make([]BulkUpdateAccountResult, 0, len(input.AccountIDs)),
 	}
 
 	if len(input.AccountIDs) == 0 {
@@ -910,6 +962,9 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 	if input.Status != "" {
 		repoUpdates.Status = &input.Status
 	}
+	if input.Schedulable != nil {
+		repoUpdates.Schedulable = input.Schedulable
+	}
 
 	// Run bulk update for column/jsonb fields first.
 	if _, err := s.accountRepo.BulkUpdate(ctx, input.AccountIDs, repoUpdates); err != nil {
@@ -930,6 +985,7 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 						entry.Success = false
 						entry.Error = err.Error()
 						result.Failed++
+						result.FailedIDs = append(result.FailedIDs, accountID)
 						result.Results = append(result.Results, entry)
 						continue
 					}
@@ -939,6 +995,7 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 					entry.Success = false
 					entry.Error = err.Error()
 					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, accountID)
 					result.Results = append(result.Results, entry)
 					continue
 				}
@@ -948,6 +1005,7 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 				entry.Success = false
 				entry.Error = err.Error()
 				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, accountID)
 				result.Results = append(result.Results, entry)
 				continue
 			}
@@ -955,6 +1013,7 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 
 		entry.Success = true
 		result.Success++
+		result.SuccessIDs = append(result.SuccessIDs, accountID)
 		result.Results = append(result.Results, entry)
 	}
 
