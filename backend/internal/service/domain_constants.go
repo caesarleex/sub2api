@@ -1,73 +1,85 @@
 package service
 
+import "github.com/Wei-Shaw/sub2api/internal/domain"
+
 // Status constants
 const (
-	StatusActive   = "active"
-	StatusDisabled = "disabled"
-	StatusError    = "error"
-	StatusUnused   = "unused"
-	StatusUsed     = "used"
-	StatusExpired  = "expired"
+	StatusActive   = domain.StatusActive
+	StatusDisabled = domain.StatusDisabled
+	StatusError    = domain.StatusError
+	StatusUnused   = domain.StatusUnused
+	StatusUsed     = domain.StatusUsed
+	StatusExpired  = domain.StatusExpired
 )
 
 // Role constants
 const (
-	RoleAdmin = "admin"
-	RoleUser  = "user"
+	RoleAdmin = domain.RoleAdmin
+	RoleUser  = domain.RoleUser
 )
 
 // Platform constants
 const (
-	PlatformAnthropic   = "anthropic"
-	PlatformOpenAI      = "openai"
-	PlatformGemini      = "gemini"
-	PlatformAntigravity = "antigravity"
+	PlatformAnthropic   = domain.PlatformAnthropic
+	PlatformOpenAI      = domain.PlatformOpenAI
+	PlatformGemini      = domain.PlatformGemini
+	PlatformAntigravity = domain.PlatformAntigravity
+	PlatformSora        = domain.PlatformSora
 )
 
 // Account type constants
 const (
-	AccountTypeOAuth      = "oauth"       // OAuth类型账号（full scope: profile + inference）
-	AccountTypeSetupToken = "setup-token" // Setup Token类型账号（inference only scope）
-	AccountTypeAPIKey     = "apikey"      // API Key类型账号
+	AccountTypeOAuth      = domain.AccountTypeOAuth      // OAuth类型账号（full scope: profile + inference）
+	AccountTypeSetupToken = domain.AccountTypeSetupToken // Setup Token类型账号（inference only scope）
+	AccountTypeAPIKey     = domain.AccountTypeAPIKey     // API Key类型账号
+	AccountTypeUpstream   = domain.AccountTypeUpstream   // 上游透传类型账号（通过 Base URL + API Key 连接上游）
 )
 
 // Redeem type constants
 const (
-	RedeemTypeBalance      = "balance"
-	RedeemTypeConcurrency  = "concurrency"
-	RedeemTypeSubscription = "subscription"
+	RedeemTypeBalance      = domain.RedeemTypeBalance
+	RedeemTypeConcurrency  = domain.RedeemTypeConcurrency
+	RedeemTypeSubscription = domain.RedeemTypeSubscription
+	RedeemTypeInvitation   = domain.RedeemTypeInvitation
 )
 
 // PromoCode status constants
 const (
-	PromoCodeStatusActive   = "active"
-	PromoCodeStatusDisabled = "disabled"
+	PromoCodeStatusActive   = domain.PromoCodeStatusActive
+	PromoCodeStatusDisabled = domain.PromoCodeStatusDisabled
 )
 
 // Admin adjustment type constants
 const (
-	AdjustmentTypeAdminBalance     = "admin_balance"     // 管理员调整余额
-	AdjustmentTypeAdminConcurrency = "admin_concurrency" // 管理员调整并发数
+	AdjustmentTypeAdminBalance     = domain.AdjustmentTypeAdminBalance     // 管理员调整余额
+	AdjustmentTypeAdminConcurrency = domain.AdjustmentTypeAdminConcurrency // 管理员调整并发数
 )
 
 // Group subscription type constants
 const (
-	SubscriptionTypeStandard     = "standard"     // 标准计费模式（按余额扣费）
-	SubscriptionTypeSubscription = "subscription" // 订阅模式（按限额控制）
+	SubscriptionTypeStandard     = domain.SubscriptionTypeStandard     // 标准计费模式（按余额扣费）
+	SubscriptionTypeSubscription = domain.SubscriptionTypeSubscription // 订阅模式（按限额控制）
 )
 
 // Subscription status constants
 const (
-	SubscriptionStatusActive    = "active"
-	SubscriptionStatusExpired   = "expired"
-	SubscriptionStatusSuspended = "suspended"
+	SubscriptionStatusActive    = domain.SubscriptionStatusActive
+	SubscriptionStatusExpired   = domain.SubscriptionStatusExpired
+	SubscriptionStatusSuspended = domain.SubscriptionStatusSuspended
 )
+
+// LinuxDoConnectSyntheticEmailDomain 是 LinuxDo Connect 用户的合成邮箱后缀（RFC 保留域名）。
+const LinuxDoConnectSyntheticEmailDomain = "@linuxdo-connect.invalid"
 
 // Setting keys
 const (
 	// 注册设置
-	SettingKeyRegistrationEnabled = "registration_enabled" // 是否开放注册
-	SettingKeyEmailVerifyEnabled  = "email_verify_enabled" // 是否开启邮件验证
+	SettingKeyRegistrationEnabled              = "registration_enabled"                // 是否开放注册
+	SettingKeyEmailVerifyEnabled               = "email_verify_enabled"                // 是否开启邮件验证
+	SettingKeyRegistrationEmailSuffixWhitelist = "registration_email_suffix_whitelist" // 注册邮箱后缀白名单（JSON 数组）
+	SettingKeyPromoCodeEnabled                 = "promo_code_enabled"                  // 是否启用优惠码功能
+	SettingKeyPasswordResetEnabled             = "password_reset_enabled"              // 是否启用忘记密码功能（需要先开启邮件验证）
+	SettingKeyInvitationCodeEnabled            = "invitation_code_enabled"             // 是否启用邀请码注册
 
 	// 邮件服务设置
 	SettingKeySMTPHost     = "smtp_host"      // SMTP服务器地址
@@ -83,18 +95,33 @@ const (
 	SettingKeyTurnstileSiteKey   = "turnstile_site_key"   // Turnstile Site Key
 	SettingKeyTurnstileSecretKey = "turnstile_secret_key" // Turnstile Secret Key
 
+	// TOTP 双因素认证设置
+	SettingKeyTotpEnabled = "totp_enabled" // 是否启用 TOTP 2FA 功能
+
+	// LinuxDo Connect OAuth 登录设置
+	SettingKeyLinuxDoConnectEnabled      = "linuxdo_connect_enabled"
+	SettingKeyLinuxDoConnectClientID     = "linuxdo_connect_client_id"
+	SettingKeyLinuxDoConnectClientSecret = "linuxdo_connect_client_secret"
+	SettingKeyLinuxDoConnectRedirectURL  = "linuxdo_connect_redirect_url"
+
 	// OEM设置
-	SettingKeySiteName     = "site_name"     // 网站名称
-	SettingKeySiteLogo     = "site_logo"     // 网站Logo (base64)
-	SettingKeySiteSubtitle = "site_subtitle" // 网站副标题
-	SettingKeyAPIBaseURL   = "api_base_url"  // API端点地址（用于客户端配置和导入）
-	SettingKeyContactInfo  = "contact_info"  // 客服联系方式
-	SettingKeyDocURL       = "doc_url"       // 文档链接
-	SettingKeyHomeContent  = "home_content"  // 首页内容（支持 Markdown/HTML，或 URL 作为 iframe src）
+	SettingKeySoraClientEnabled           = "sora_client_enabled"           // 是否启用 Sora 客户端（管理员手动控制）
+	SettingKeySiteName                    = "site_name"                     // 网站名称
+	SettingKeySiteLogo                    = "site_logo"                     // 网站Logo (base64)
+	SettingKeySiteSubtitle                = "site_subtitle"                 // 网站副标题
+	SettingKeyAPIBaseURL                  = "api_base_url"                  // API端点地址（用于客户端配置和导入）
+	SettingKeyContactInfo                 = "contact_info"                  // 客服联系方式
+	SettingKeyDocURL                      = "doc_url"                       // 文档链接
+	SettingKeyHomeContent                 = "home_content"                  // 首页内容（支持 Markdown/HTML，或 URL 作为 iframe src）
+	SettingKeyHideCcsImportButton         = "hide_ccs_import_button"        // 是否隐藏 API Keys 页面的导入 CCS 按钮
+	SettingKeyPurchaseSubscriptionEnabled = "purchase_subscription_enabled" // 是否展示"购买订阅"页面入口
+	SettingKeyPurchaseSubscriptionURL     = "purchase_subscription_url"     // "购买订阅"页面 URL（作为 iframe src）
+	SettingKeyCustomMenuItems             = "custom_menu_items"             // 自定义菜单项（JSON 数组）
 
 	// 默认配置
-	SettingKeyDefaultConcurrency = "default_concurrency" // 新用户默认并发量
-	SettingKeyDefaultBalance     = "default_balance"     // 新用户默认余额
+	SettingKeyDefaultConcurrency   = "default_concurrency"   // 新用户默认并发量
+	SettingKeyDefaultBalance       = "default_balance"       // 新用户默认余额
+	SettingKeyDefaultSubscriptions = "default_subscriptions" // 新用户默认订阅列表（JSON）
 
 	// 管理员 API Key
 	SettingKeyAdminAPIKey = "admin_api_key" // 全局管理员 API Key（用于外部系统集成）
@@ -113,16 +140,72 @@ const (
 	SettingKeyEnableIdentityPatch = "enable_identity_patch"
 	SettingKeyIdentityPatchPrompt = "identity_patch_prompt"
 
-	// LinuxDo Connect OAuth 登录（终端用户 SSO）
-	SettingKeyLinuxDoConnectEnabled      = "linuxdo_connect_enabled"
-	SettingKeyLinuxDoConnectClientID     = "linuxdo_connect_client_id"
-	SettingKeyLinuxDoConnectClientSecret = "linuxdo_connect_client_secret"
-	SettingKeyLinuxDoConnectRedirectURL  = "linuxdo_connect_redirect_url"
-)
+	// =========================
+	// Ops Monitoring (vNext)
+	// =========================
 
-// LinuxDoConnectSyntheticEmailDomain 是 LinuxDo Connect 用户的合成邮箱后缀（RFC 保留域名）。
-// 目的：避免第三方登录返回的用户标识与本地真实邮箱发生碰撞，进而造成账号被接管的风险。
-const LinuxDoConnectSyntheticEmailDomain = "@linuxdo-connect.invalid"
+	// SettingKeyOpsMonitoringEnabled is a DB-backed soft switch to enable/disable ops module at runtime.
+	SettingKeyOpsMonitoringEnabled = "ops_monitoring_enabled"
+
+	// SettingKeyOpsRealtimeMonitoringEnabled controls realtime features (e.g. WS/QPS push).
+	SettingKeyOpsRealtimeMonitoringEnabled = "ops_realtime_monitoring_enabled"
+
+	// SettingKeyOpsQueryModeDefault controls the default query mode for ops dashboard (auto/raw/preagg).
+	SettingKeyOpsQueryModeDefault = "ops_query_mode_default"
+
+	// SettingKeyOpsEmailNotificationConfig stores JSON config for ops email notifications.
+	SettingKeyOpsEmailNotificationConfig = "ops_email_notification_config"
+
+	// SettingKeyOpsAlertRuntimeSettings stores JSON config for ops alert evaluator runtime settings.
+	SettingKeyOpsAlertRuntimeSettings = "ops_alert_runtime_settings"
+
+	// SettingKeyOpsMetricsIntervalSeconds controls the ops metrics collector interval (>=60).
+	SettingKeyOpsMetricsIntervalSeconds = "ops_metrics_interval_seconds"
+
+	// SettingKeyOpsAdvancedSettings stores JSON config for ops advanced settings (data retention, aggregation).
+	SettingKeyOpsAdvancedSettings = "ops_advanced_settings"
+
+	// SettingKeyOpsRuntimeLogConfig stores JSON config for runtime log settings.
+	SettingKeyOpsRuntimeLogConfig = "ops_runtime_log_config"
+
+	// =========================
+	// Stream Timeout Handling
+	// =========================
+
+	// SettingKeyStreamTimeoutSettings stores JSON config for stream timeout handling.
+	SettingKeyStreamTimeoutSettings = "stream_timeout_settings"
+
+	// =========================
+	// Sora S3 存储配置
+	// =========================
+
+	SettingKeySoraS3Enabled         = "sora_s3_enabled"           // 是否启用 Sora S3 存储
+	SettingKeySoraS3Endpoint        = "sora_s3_endpoint"          // S3 端点地址
+	SettingKeySoraS3Region          = "sora_s3_region"            // S3 区域
+	SettingKeySoraS3Bucket          = "sora_s3_bucket"            // S3 存储桶名称
+	SettingKeySoraS3AccessKeyID     = "sora_s3_access_key_id"     // S3 Access Key ID
+	SettingKeySoraS3SecretAccessKey = "sora_s3_secret_access_key" // S3 Secret Access Key（加密存储）
+	SettingKeySoraS3Prefix          = "sora_s3_prefix"            // S3 对象键前缀
+	SettingKeySoraS3ForcePathStyle  = "sora_s3_force_path_style"  // 是否强制 Path Style（兼容 MinIO 等）
+	SettingKeySoraS3CDNURL          = "sora_s3_cdn_url"           // CDN 加速 URL（可选）
+	SettingKeySoraS3Profiles        = "sora_s3_profiles"          // Sora S3 多配置（JSON）
+
+	// =========================
+	// Sora 用户存储配额
+	// =========================
+
+	SettingKeySoraDefaultStorageQuotaBytes = "sora_default_storage_quota_bytes" // 新用户默认 Sora 存储配额（字节）
+
+	// =========================
+	// Claude Code Version Check
+	// =========================
+
+	// SettingKeyMinClaudeCodeVersion 最低 Claude Code 版本号要求 (semver, 如 "2.1.0"，空值=不检查)
+	SettingKeyMinClaudeCodeVersion = "min_claude_code_version"
+
+	// SettingKeyAllowUngroupedKeyScheduling 允许未分组 API Key 调度（默认 false：未分组 Key 返回 403）
+	SettingKeyAllowUngroupedKeyScheduling = "allow_ungrouped_key_scheduling"
+)
 
 // AdminAPIKeyPrefix is the prefix for admin API keys (distinct from user "sk-" keys).
 const AdminAPIKeyPrefix = "admin-"

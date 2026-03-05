@@ -110,6 +110,31 @@ func Notes(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldNotes, v))
 }
 
+// TotpSecretEncrypted applies equality check predicate on the "totp_secret_encrypted" field. It's identical to TotpSecretEncryptedEQ.
+func TotpSecretEncrypted(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldTotpSecretEncrypted, v))
+}
+
+// TotpEnabled applies equality check predicate on the "totp_enabled" field. It's identical to TotpEnabledEQ.
+func TotpEnabled(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldTotpEnabled, v))
+}
+
+// TotpEnabledAt applies equality check predicate on the "totp_enabled_at" field. It's identical to TotpEnabledAtEQ.
+func TotpEnabledAt(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldTotpEnabledAt, v))
+}
+
+// SoraStorageQuotaBytes applies equality check predicate on the "sora_storage_quota_bytes" field. It's identical to SoraStorageQuotaBytesEQ.
+func SoraStorageQuotaBytes(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSoraStorageQuotaBytes, v))
+}
+
+// SoraStorageUsedBytes applies equality check predicate on the "sora_storage_used_bytes" field. It's identical to SoraStorageUsedBytesEQ.
+func SoraStorageUsedBytes(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSoraStorageUsedBytes, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldCreatedAt, v))
@@ -710,6 +735,221 @@ func NotesContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldNotes, v))
 }
 
+// TotpSecretEncryptedEQ applies the EQ predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedEQ(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedNEQ applies the NEQ predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedNEQ(v string) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedIn applies the In predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldIn(FieldTotpSecretEncrypted, vs...))
+}
+
+// TotpSecretEncryptedNotIn applies the NotIn predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedNotIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldTotpSecretEncrypted, vs...))
+}
+
+// TotpSecretEncryptedGT applies the GT predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedGT(v string) predicate.User {
+	return predicate.User(sql.FieldGT(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedGTE applies the GTE predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedGTE(v string) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedLT applies the LT predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedLT(v string) predicate.User {
+	return predicate.User(sql.FieldLT(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedLTE applies the LTE predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedLTE(v string) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedContains applies the Contains predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedContains(v string) predicate.User {
+	return predicate.User(sql.FieldContains(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedHasPrefix applies the HasPrefix predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedHasPrefix(v string) predicate.User {
+	return predicate.User(sql.FieldHasPrefix(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedHasSuffix applies the HasSuffix predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedHasSuffix(v string) predicate.User {
+	return predicate.User(sql.FieldHasSuffix(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedIsNil applies the IsNil predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldTotpSecretEncrypted))
+}
+
+// TotpSecretEncryptedNotNil applies the NotNil predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldTotpSecretEncrypted))
+}
+
+// TotpSecretEncryptedEqualFold applies the EqualFold predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedEqualFold(v string) predicate.User {
+	return predicate.User(sql.FieldEqualFold(FieldTotpSecretEncrypted, v))
+}
+
+// TotpSecretEncryptedContainsFold applies the ContainsFold predicate on the "totp_secret_encrypted" field.
+func TotpSecretEncryptedContainsFold(v string) predicate.User {
+	return predicate.User(sql.FieldContainsFold(FieldTotpSecretEncrypted, v))
+}
+
+// TotpEnabledEQ applies the EQ predicate on the "totp_enabled" field.
+func TotpEnabledEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldTotpEnabled, v))
+}
+
+// TotpEnabledNEQ applies the NEQ predicate on the "totp_enabled" field.
+func TotpEnabledNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldTotpEnabled, v))
+}
+
+// TotpEnabledAtEQ applies the EQ predicate on the "totp_enabled_at" field.
+func TotpEnabledAtEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldTotpEnabledAt, v))
+}
+
+// TotpEnabledAtNEQ applies the NEQ predicate on the "totp_enabled_at" field.
+func TotpEnabledAtNEQ(v time.Time) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldTotpEnabledAt, v))
+}
+
+// TotpEnabledAtIn applies the In predicate on the "totp_enabled_at" field.
+func TotpEnabledAtIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldIn(FieldTotpEnabledAt, vs...))
+}
+
+// TotpEnabledAtNotIn applies the NotIn predicate on the "totp_enabled_at" field.
+func TotpEnabledAtNotIn(vs ...time.Time) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldTotpEnabledAt, vs...))
+}
+
+// TotpEnabledAtGT applies the GT predicate on the "totp_enabled_at" field.
+func TotpEnabledAtGT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGT(FieldTotpEnabledAt, v))
+}
+
+// TotpEnabledAtGTE applies the GTE predicate on the "totp_enabled_at" field.
+func TotpEnabledAtGTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldTotpEnabledAt, v))
+}
+
+// TotpEnabledAtLT applies the LT predicate on the "totp_enabled_at" field.
+func TotpEnabledAtLT(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLT(FieldTotpEnabledAt, v))
+}
+
+// TotpEnabledAtLTE applies the LTE predicate on the "totp_enabled_at" field.
+func TotpEnabledAtLTE(v time.Time) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldTotpEnabledAt, v))
+}
+
+// TotpEnabledAtIsNil applies the IsNil predicate on the "totp_enabled_at" field.
+func TotpEnabledAtIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldTotpEnabledAt))
+}
+
+// TotpEnabledAtNotNil applies the NotNil predicate on the "totp_enabled_at" field.
+func TotpEnabledAtNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldTotpEnabledAt))
+}
+
+// SoraStorageQuotaBytesEQ applies the EQ predicate on the "sora_storage_quota_bytes" field.
+func SoraStorageQuotaBytesEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSoraStorageQuotaBytes, v))
+}
+
+// SoraStorageQuotaBytesNEQ applies the NEQ predicate on the "sora_storage_quota_bytes" field.
+func SoraStorageQuotaBytesNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldSoraStorageQuotaBytes, v))
+}
+
+// SoraStorageQuotaBytesIn applies the In predicate on the "sora_storage_quota_bytes" field.
+func SoraStorageQuotaBytesIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldSoraStorageQuotaBytes, vs...))
+}
+
+// SoraStorageQuotaBytesNotIn applies the NotIn predicate on the "sora_storage_quota_bytes" field.
+func SoraStorageQuotaBytesNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldSoraStorageQuotaBytes, vs...))
+}
+
+// SoraStorageQuotaBytesGT applies the GT predicate on the "sora_storage_quota_bytes" field.
+func SoraStorageQuotaBytesGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldSoraStorageQuotaBytes, v))
+}
+
+// SoraStorageQuotaBytesGTE applies the GTE predicate on the "sora_storage_quota_bytes" field.
+func SoraStorageQuotaBytesGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldSoraStorageQuotaBytes, v))
+}
+
+// SoraStorageQuotaBytesLT applies the LT predicate on the "sora_storage_quota_bytes" field.
+func SoraStorageQuotaBytesLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldSoraStorageQuotaBytes, v))
+}
+
+// SoraStorageQuotaBytesLTE applies the LTE predicate on the "sora_storage_quota_bytes" field.
+func SoraStorageQuotaBytesLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldSoraStorageQuotaBytes, v))
+}
+
+// SoraStorageUsedBytesEQ applies the EQ predicate on the "sora_storage_used_bytes" field.
+func SoraStorageUsedBytesEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSoraStorageUsedBytes, v))
+}
+
+// SoraStorageUsedBytesNEQ applies the NEQ predicate on the "sora_storage_used_bytes" field.
+func SoraStorageUsedBytesNEQ(v int64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldSoraStorageUsedBytes, v))
+}
+
+// SoraStorageUsedBytesIn applies the In predicate on the "sora_storage_used_bytes" field.
+func SoraStorageUsedBytesIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldSoraStorageUsedBytes, vs...))
+}
+
+// SoraStorageUsedBytesNotIn applies the NotIn predicate on the "sora_storage_used_bytes" field.
+func SoraStorageUsedBytesNotIn(vs ...int64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldSoraStorageUsedBytes, vs...))
+}
+
+// SoraStorageUsedBytesGT applies the GT predicate on the "sora_storage_used_bytes" field.
+func SoraStorageUsedBytesGT(v int64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldSoraStorageUsedBytes, v))
+}
+
+// SoraStorageUsedBytesGTE applies the GTE predicate on the "sora_storage_used_bytes" field.
+func SoraStorageUsedBytesGTE(v int64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldSoraStorageUsedBytes, v))
+}
+
+// SoraStorageUsedBytesLT applies the LT predicate on the "sora_storage_used_bytes" field.
+func SoraStorageUsedBytesLT(v int64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldSoraStorageUsedBytes, v))
+}
+
+// SoraStorageUsedBytesLTE applies the LTE predicate on the "sora_storage_used_bytes" field.
+func SoraStorageUsedBytesLTE(v int64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldSoraStorageUsedBytes, v))
+}
+
 // HasAPIKeys applies the HasEdge predicate on the "api_keys" edge.
 func HasAPIKeys() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -794,6 +1034,29 @@ func HasAssignedSubscriptions() predicate.User {
 func HasAssignedSubscriptionsWith(preds ...predicate.UserSubscription) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := newAssignedSubscriptionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAnnouncementReads applies the HasEdge predicate on the "announcement_reads" edge.
+func HasAnnouncementReads() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AnnouncementReadsTable, AnnouncementReadsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAnnouncementReadsWith applies the HasEdge predicate on the "announcement_reads" edge with a given conditions (other predicates).
+func HasAnnouncementReadsWith(preds ...predicate.AnnouncementRead) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newAnnouncementReadsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -415,6 +415,33 @@ func (_u *UsageLogUpdate) AddRateMultiplier(v float64) *UsageLogUpdate {
 	return _u
 }
 
+// SetAccountRateMultiplier sets the "account_rate_multiplier" field.
+func (_u *UsageLogUpdate) SetAccountRateMultiplier(v float64) *UsageLogUpdate {
+	_u.mutation.ResetAccountRateMultiplier()
+	_u.mutation.SetAccountRateMultiplier(v)
+	return _u
+}
+
+// SetNillableAccountRateMultiplier sets the "account_rate_multiplier" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableAccountRateMultiplier(v *float64) *UsageLogUpdate {
+	if v != nil {
+		_u.SetAccountRateMultiplier(*v)
+	}
+	return _u
+}
+
+// AddAccountRateMultiplier adds value to the "account_rate_multiplier" field.
+func (_u *UsageLogUpdate) AddAccountRateMultiplier(v float64) *UsageLogUpdate {
+	_u.mutation.AddAccountRateMultiplier(v)
+	return _u
+}
+
+// ClearAccountRateMultiplier clears the value of the "account_rate_multiplier" field.
+func (_u *UsageLogUpdate) ClearAccountRateMultiplier() *UsageLogUpdate {
+	_u.mutation.ClearAccountRateMultiplier()
+	return _u
+}
+
 // SetBillingType sets the "billing_type" field.
 func (_u *UsageLogUpdate) SetBillingType(v int8) *UsageLogUpdate {
 	_u.mutation.ResetBillingType()
@@ -585,6 +612,40 @@ func (_u *UsageLogUpdate) ClearImageSize() *UsageLogUpdate {
 	return _u
 }
 
+// SetMediaType sets the "media_type" field.
+func (_u *UsageLogUpdate) SetMediaType(v string) *UsageLogUpdate {
+	_u.mutation.SetMediaType(v)
+	return _u
+}
+
+// SetNillableMediaType sets the "media_type" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableMediaType(v *string) *UsageLogUpdate {
+	if v != nil {
+		_u.SetMediaType(*v)
+	}
+	return _u
+}
+
+// ClearMediaType clears the value of the "media_type" field.
+func (_u *UsageLogUpdate) ClearMediaType() *UsageLogUpdate {
+	_u.mutation.ClearMediaType()
+	return _u
+}
+
+// SetCacheTTLOverridden sets the "cache_ttl_overridden" field.
+func (_u *UsageLogUpdate) SetCacheTTLOverridden(v bool) *UsageLogUpdate {
+	_u.mutation.SetCacheTTLOverridden(v)
+	return _u
+}
+
+// SetNillableCacheTTLOverridden sets the "cache_ttl_overridden" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableCacheTTLOverridden(v *bool) *UsageLogUpdate {
+	if v != nil {
+		_u.SetCacheTTLOverridden(*v)
+	}
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *UsageLogUpdate) SetUser(v *User) *UsageLogUpdate {
 	return _u.SetUserID(v.ID)
@@ -699,6 +760,11 @@ func (_u *UsageLogUpdate) check() error {
 			return &ValidationError{Name: "image_size", err: fmt.Errorf(`ent: validator failed for field "UsageLog.image_size": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.MediaType(); ok {
+		if err := usagelog.MediaTypeValidator(v); err != nil {
+			return &ValidationError{Name: "media_type", err: fmt.Errorf(`ent: validator failed for field "UsageLog.media_type": %w`, err)}
+		}
+	}
 	if _u.mutation.UserCleared() && len(_u.mutation.UserIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "UsageLog.user"`)
 	}
@@ -807,6 +873,15 @@ func (_u *UsageLogUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedRateMultiplier(); ok {
 		_spec.AddField(usagelog.FieldRateMultiplier, field.TypeFloat64, value)
 	}
+	if value, ok := _u.mutation.AccountRateMultiplier(); ok {
+		_spec.SetField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedAccountRateMultiplier(); ok {
+		_spec.AddField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64, value)
+	}
+	if _u.mutation.AccountRateMultiplierCleared() {
+		_spec.ClearField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64)
+	}
 	if value, ok := _u.mutation.BillingType(); ok {
 		_spec.SetField(usagelog.FieldBillingType, field.TypeInt8, value)
 	}
@@ -857,6 +932,15 @@ func (_u *UsageLogUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.ImageSizeCleared() {
 		_spec.ClearField(usagelog.FieldImageSize, field.TypeString)
+	}
+	if value, ok := _u.mutation.MediaType(); ok {
+		_spec.SetField(usagelog.FieldMediaType, field.TypeString, value)
+	}
+	if _u.mutation.MediaTypeCleared() {
+		_spec.ClearField(usagelog.FieldMediaType, field.TypeString)
+	}
+	if value, ok := _u.mutation.CacheTTLOverridden(); ok {
+		_spec.SetField(usagelog.FieldCacheTTLOverridden, field.TypeBool, value)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1406,6 +1490,33 @@ func (_u *UsageLogUpdateOne) AddRateMultiplier(v float64) *UsageLogUpdateOne {
 	return _u
 }
 
+// SetAccountRateMultiplier sets the "account_rate_multiplier" field.
+func (_u *UsageLogUpdateOne) SetAccountRateMultiplier(v float64) *UsageLogUpdateOne {
+	_u.mutation.ResetAccountRateMultiplier()
+	_u.mutation.SetAccountRateMultiplier(v)
+	return _u
+}
+
+// SetNillableAccountRateMultiplier sets the "account_rate_multiplier" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableAccountRateMultiplier(v *float64) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetAccountRateMultiplier(*v)
+	}
+	return _u
+}
+
+// AddAccountRateMultiplier adds value to the "account_rate_multiplier" field.
+func (_u *UsageLogUpdateOne) AddAccountRateMultiplier(v float64) *UsageLogUpdateOne {
+	_u.mutation.AddAccountRateMultiplier(v)
+	return _u
+}
+
+// ClearAccountRateMultiplier clears the value of the "account_rate_multiplier" field.
+func (_u *UsageLogUpdateOne) ClearAccountRateMultiplier() *UsageLogUpdateOne {
+	_u.mutation.ClearAccountRateMultiplier()
+	return _u
+}
+
 // SetBillingType sets the "billing_type" field.
 func (_u *UsageLogUpdateOne) SetBillingType(v int8) *UsageLogUpdateOne {
 	_u.mutation.ResetBillingType()
@@ -1576,6 +1687,40 @@ func (_u *UsageLogUpdateOne) ClearImageSize() *UsageLogUpdateOne {
 	return _u
 }
 
+// SetMediaType sets the "media_type" field.
+func (_u *UsageLogUpdateOne) SetMediaType(v string) *UsageLogUpdateOne {
+	_u.mutation.SetMediaType(v)
+	return _u
+}
+
+// SetNillableMediaType sets the "media_type" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableMediaType(v *string) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetMediaType(*v)
+	}
+	return _u
+}
+
+// ClearMediaType clears the value of the "media_type" field.
+func (_u *UsageLogUpdateOne) ClearMediaType() *UsageLogUpdateOne {
+	_u.mutation.ClearMediaType()
+	return _u
+}
+
+// SetCacheTTLOverridden sets the "cache_ttl_overridden" field.
+func (_u *UsageLogUpdateOne) SetCacheTTLOverridden(v bool) *UsageLogUpdateOne {
+	_u.mutation.SetCacheTTLOverridden(v)
+	return _u
+}
+
+// SetNillableCacheTTLOverridden sets the "cache_ttl_overridden" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableCacheTTLOverridden(v *bool) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetCacheTTLOverridden(*v)
+	}
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *UsageLogUpdateOne) SetUser(v *User) *UsageLogUpdateOne {
 	return _u.SetUserID(v.ID)
@@ -1703,6 +1848,11 @@ func (_u *UsageLogUpdateOne) check() error {
 			return &ValidationError{Name: "image_size", err: fmt.Errorf(`ent: validator failed for field "UsageLog.image_size": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.MediaType(); ok {
+		if err := usagelog.MediaTypeValidator(v); err != nil {
+			return &ValidationError{Name: "media_type", err: fmt.Errorf(`ent: validator failed for field "UsageLog.media_type": %w`, err)}
+		}
+	}
 	if _u.mutation.UserCleared() && len(_u.mutation.UserIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "UsageLog.user"`)
 	}
@@ -1828,6 +1978,15 @@ func (_u *UsageLogUpdateOne) sqlSave(ctx context.Context) (_node *UsageLog, err 
 	if value, ok := _u.mutation.AddedRateMultiplier(); ok {
 		_spec.AddField(usagelog.FieldRateMultiplier, field.TypeFloat64, value)
 	}
+	if value, ok := _u.mutation.AccountRateMultiplier(); ok {
+		_spec.SetField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedAccountRateMultiplier(); ok {
+		_spec.AddField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64, value)
+	}
+	if _u.mutation.AccountRateMultiplierCleared() {
+		_spec.ClearField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64)
+	}
 	if value, ok := _u.mutation.BillingType(); ok {
 		_spec.SetField(usagelog.FieldBillingType, field.TypeInt8, value)
 	}
@@ -1878,6 +2037,15 @@ func (_u *UsageLogUpdateOne) sqlSave(ctx context.Context) (_node *UsageLog, err 
 	}
 	if _u.mutation.ImageSizeCleared() {
 		_spec.ClearField(usagelog.FieldImageSize, field.TypeString)
+	}
+	if value, ok := _u.mutation.MediaType(); ok {
+		_spec.SetField(usagelog.FieldMediaType, field.TypeString, value)
+	}
+	if _u.mutation.MediaTypeCleared() {
+		_spec.ClearField(usagelog.FieldMediaType, field.TypeString)
+	}
+	if value, ok := _u.mutation.CacheTTLOverridden(); ok {
+		_spec.SetField(usagelog.FieldCacheTTLOverridden, field.TypeBool, value)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

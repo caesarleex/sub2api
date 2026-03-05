@@ -85,6 +85,12 @@ func (UsageLog) Fields() []ent.Field {
 			Default(1).
 			SchemaType(map[string]string{dialect.Postgres: "decimal(10,4)"}),
 
+		// account_rate_multiplier: 账号计费倍率快照（NULL 表示按 1.0 处理）
+		field.Float("account_rate_multiplier").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "decimal(10,4)"}),
+
 		// 其他字段
 		field.Int8("billing_type").
 			Default(0),
@@ -112,6 +118,15 @@ func (UsageLog) Fields() []ent.Field {
 			MaxLen(10).
 			Optional().
 			Nillable(),
+		// 媒体类型字段（sora 使用）
+		field.String("media_type").
+			MaxLen(16).
+			Optional().
+			Nillable(),
+
+		// Cache TTL Override 标记（管理员强制替换了缓存 TTL 计费）
+		field.Bool("cache_ttl_overridden").
+			Default(false),
 
 		// 时间戳（只有 created_at，日志不可修改）
 		field.Time("created_at").
@@ -164,5 +179,7 @@ func (UsageLog) Indexes() []ent.Index {
 		// 复合索引用于时间范围查询
 		index.Fields("user_id", "created_at"),
 		index.Fields("api_key_id", "created_at"),
+		// 分组维度时间范围查询（线上由 SQL 迁移创建 group_id IS NOT NULL 的部分索引）
+		index.Fields("group_id", "created_at"),
 	}
 }

@@ -1,6 +1,9 @@
 package service
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type Group struct {
 	ID             int64
@@ -23,9 +26,36 @@ type Group struct {
 	ImagePrice2K *float64
 	ImagePrice4K *float64
 
+	// Sora 按次计费配置（阶段 1）
+	SoraImagePrice360          *float64
+	SoraImagePrice540          *float64
+	SoraVideoPricePerRequest   *float64
+	SoraVideoPricePerRequestHD *float64
+
+	// Sora 存储配额
+	SoraStorageQuotaBytes int64
+
 	// Claude Code 客户端限制
 	ClaudeCodeOnly  bool
 	FallbackGroupID *int64
+	// 无效请求兜底分组（仅 anthropic 平台使用）
+	FallbackGroupIDOnInvalidRequest *int64
+
+	// 模型路由配置
+	// key: 模型匹配模式（支持 * 通配符，如 "claude-opus-*"）
+	// value: 优先账号 ID 列表
+	ModelRouting        map[string][]int64
+	ModelRoutingEnabled bool
+
+	// MCP XML 协议注入开关（仅 antigravity 平台使用）
+	MCPXMLInject bool
+
+	// 支持的模型系列（仅 antigravity 平台使用）
+	// 可选值: claude, gemini_text, gemini_image
+	SupportedModelScopes []string
+
+	// 分组排序
+	SortOrder int
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -74,6 +104,18 @@ func (g *Group) GetImagePrice(imageSize string) *float64 {
 	}
 }
 
+// GetSoraImagePrice 根据 Sora 图片尺寸返回价格（360/540）
+func (g *Group) GetSoraImagePrice(imageSize string) *float64 {
+	switch imageSize {
+	case "360":
+		return g.SoraImagePrice360
+	case "540":
+		return g.SoraImagePrice540
+	default:
+		return g.SoraImagePrice360
+	}
+}
+
 // IsGroupContextValid reports whether a group from context has the fields required for routing decisions.
 func IsGroupContextValid(group *Group) bool {
 	if group == nil {
@@ -89,4 +131,42 @@ func IsGroupContextValid(group *Group) bool {
 		return false
 	}
 	return true
+}
+
+// GetRoutingAccountIDs 根据请求模型获取路由账号 ID 列表
+// 返回匹配的优先账号 ID 列表，如果没有匹配规则则返回 nil
+func (g *Group) GetRoutingAccountIDs(requestedModel string) []int64 {
+	if !g.ModelRoutingEnabled || len(g.ModelRouting) == 0 || requestedModel == "" {
+		return nil
+	}
+
+	// 1. 精确匹配优先
+	if accountIDs, ok := g.ModelRouting[requestedModel]; ok && len(accountIDs) > 0 {
+		return accountIDs
+	}
+
+	// 2. 通配符匹配（前缀匹配）
+	for pattern, accountIDs := range g.ModelRouting {
+		if matchModelPattern(pattern, requestedModel) && len(accountIDs) > 0 {
+			return accountIDs
+		}
+	}
+
+	return nil
+}
+
+// matchModelPattern 检查模型是否匹配模式
+// 支持 * 通配符，如 "claude-opus-*" 匹配 "claude-opus-4-20250514"
+func matchModelPattern(pattern, model string) bool {
+	if pattern == model {
+		return true
+	}
+
+	// 处理 * 通配符（仅支持末尾通配符）
+	if strings.HasSuffix(pattern, "*") {
+		prefix := strings.TrimSuffix(pattern, "*")
+		return strings.HasPrefix(model, prefix)
+	}
+
+	return false
 }

@@ -28,13 +28,23 @@ func ProvideConcurrencyCache(rdb *redis.Client, cfg *config.Config) service.Conc
 // ProvideGitHubReleaseClient 创建 GitHub Release 客户端
 // 从配置中读取代理设置，支持国内服务器通过代理访问 GitHub
 func ProvideGitHubReleaseClient(cfg *config.Config) service.GitHubReleaseClient {
-	return NewGitHubReleaseClient(cfg.Update.ProxyURL)
+	return NewGitHubReleaseClient(cfg.Update.ProxyURL, cfg.Security.ProxyFallback.AllowDirectOnError)
 }
 
 // ProvidePricingRemoteClient 创建定价数据远程客户端
 // 从配置中读取代理设置，支持国内服务器通过代理访问 GitHub 上的定价数据
 func ProvidePricingRemoteClient(cfg *config.Config) service.PricingRemoteClient {
-	return NewPricingRemoteClient(cfg.Update.ProxyURL)
+	return NewPricingRemoteClient(cfg.Update.ProxyURL, cfg.Security.ProxyFallback.AllowDirectOnError)
+}
+
+// ProvideSessionLimitCache 创建会话限制缓存
+// 用于 Anthropic OAuth/SetupToken 账号的并发会话数量控制
+func ProvideSessionLimitCache(rdb *redis.Client, cfg *config.Config) service.SessionLimitCache {
+	defaultIdleTimeoutMinutes := 5 // 默认 5 分钟空闲超时
+	if cfg != nil && cfg.Gateway.SessionIdleTimeoutMinutes > 0 {
+		defaultIdleTimeoutMinutes = cfg.Gateway.SessionIdleTimeoutMinutes
+	}
+	return NewSessionLimitCache(rdb, defaultIdleTimeoutMinutes)
 }
 
 // ProviderSet is the Wire provider set for all repositories
@@ -43,28 +53,49 @@ var ProviderSet = wire.NewSet(
 	NewAPIKeyRepository,
 	NewGroupRepository,
 	NewAccountRepository,
+	NewSoraAccountRepository, // Sora 账号扩展表仓储
 	NewProxyRepository,
 	NewRedeemCodeRepository,
 	NewPromoCodeRepository,
+	NewAnnouncementRepository,
+	NewAnnouncementReadRepository,
 	NewUsageLogRepository,
+	NewIdempotencyRepository,
+	NewUsageCleanupRepository,
 	NewDashboardAggregationRepository,
 	NewSettingRepository,
+	NewOpsRepository,
 	NewUserSubscriptionRepository,
 	NewUserAttributeDefinitionRepository,
 	NewUserAttributeValueRepository,
+	NewUserGroupRateRepository,
+	NewErrorPassthroughRepository,
 
 	// Cache implementations
 	NewGatewayCache,
 	NewBillingCache,
 	NewAPIKeyCache,
 	NewTempUnschedCache,
+	NewTimeoutCounterCache,
 	ProvideConcurrencyCache,
+	ProvideSessionLimitCache,
+	NewRPMCache,
+	NewUserMsgQueueCache,
 	NewDashboardCache,
 	NewEmailCache,
 	NewIdentityCache,
 	NewRedeemCache,
 	NewUpdateCache,
 	NewGeminiTokenCache,
+	NewSchedulerCache,
+	NewSchedulerOutboxRepository,
+	NewProxyLatencyCache,
+	NewTotpCache,
+	NewRefreshTokenCache,
+	NewErrorPassthroughCache,
+
+	// Encryptors
+	NewAESEncryptor,
 
 	// HTTP service ports (DI Strategy A: return interface directly)
 	NewTurnstileVerifier,
@@ -77,6 +108,7 @@ var ProviderSet = wire.NewSet(
 	NewOpenAIOAuthClient,
 	NewGeminiOAuthClient,
 	NewGeminiCliCodeAssistClient,
+	NewGeminiDriveClient,
 
 	ProvideEnt,
 	ProvideSQLDB,

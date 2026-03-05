@@ -1,59 +1,67 @@
 package service
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
+	_ "embed"
 	"strings"
-	"time"
 )
 
-const (
-	opencodeCodexHeaderURL = "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/opencode/src/session/prompt/codex_header.txt"
-	codexCacheTTL          = 15 * time.Minute
-)
+//go:embed prompts/codex_cli_instructions.md
+var codexCLIInstructions string
 
 var codexModelMap = map[string]string{
-	"gpt-5.1-codex":             "gpt-5.1-codex",
-	"gpt-5.1-codex-low":         "gpt-5.1-codex",
-	"gpt-5.1-codex-medium":      "gpt-5.1-codex",
-	"gpt-5.1-codex-high":        "gpt-5.1-codex",
-	"gpt-5.1-codex-max":         "gpt-5.1-codex-max",
-	"gpt-5.1-codex-max-low":     "gpt-5.1-codex-max",
-	"gpt-5.1-codex-max-medium":  "gpt-5.1-codex-max",
-	"gpt-5.1-codex-max-high":    "gpt-5.1-codex-max",
-	"gpt-5.1-codex-max-xhigh":   "gpt-5.1-codex-max",
-	"gpt-5.2":                   "gpt-5.2",
-	"gpt-5.2-none":              "gpt-5.2",
-	"gpt-5.2-low":               "gpt-5.2",
-	"gpt-5.2-medium":            "gpt-5.2",
-	"gpt-5.2-high":              "gpt-5.2",
-	"gpt-5.2-xhigh":             "gpt-5.2",
-	"gpt-5.2-codex":             "gpt-5.2-codex",
-	"gpt-5.2-codex-low":         "gpt-5.2-codex",
-	"gpt-5.2-codex-medium":      "gpt-5.2-codex",
-	"gpt-5.2-codex-high":        "gpt-5.2-codex",
-	"gpt-5.2-codex-xhigh":       "gpt-5.2-codex",
-	"gpt-5.1-codex-mini":        "gpt-5.1-codex-mini",
-	"gpt-5.1-codex-mini-medium": "gpt-5.1-codex-mini",
-	"gpt-5.1-codex-mini-high":   "gpt-5.1-codex-mini",
-	"gpt-5.1":                   "gpt-5.1",
-	"gpt-5.1-none":              "gpt-5.1",
-	"gpt-5.1-low":               "gpt-5.1",
-	"gpt-5.1-medium":            "gpt-5.1",
-	"gpt-5.1-high":              "gpt-5.1",
-	"gpt-5.1-chat-latest":       "gpt-5.1",
-	"gpt-5-codex":               "gpt-5.1-codex",
-	"codex-mini-latest":         "gpt-5.1-codex-mini",
-	"gpt-5-codex-mini":          "gpt-5.1-codex-mini",
-	"gpt-5-codex-mini-medium":   "gpt-5.1-codex-mini",
-	"gpt-5-codex-mini-high":     "gpt-5.1-codex-mini",
-	"gpt-5":                     "gpt-5.1",
-	"gpt-5-mini":                "gpt-5.1",
-	"gpt-5-nano":                "gpt-5.1",
+	"gpt-5.3":                    "gpt-5.3-codex",
+	"gpt-5.3-none":               "gpt-5.3-codex",
+	"gpt-5.3-low":                "gpt-5.3-codex",
+	"gpt-5.3-medium":             "gpt-5.3-codex",
+	"gpt-5.3-high":               "gpt-5.3-codex",
+	"gpt-5.3-xhigh":              "gpt-5.3-codex",
+	"gpt-5.3-codex":              "gpt-5.3-codex",
+	"gpt-5.3-codex-spark":        "gpt-5.3-codex",
+	"gpt-5.3-codex-spark-low":    "gpt-5.3-codex",
+	"gpt-5.3-codex-spark-medium": "gpt-5.3-codex",
+	"gpt-5.3-codex-spark-high":   "gpt-5.3-codex",
+	"gpt-5.3-codex-spark-xhigh":  "gpt-5.3-codex",
+	"gpt-5.3-codex-low":          "gpt-5.3-codex",
+	"gpt-5.3-codex-medium":       "gpt-5.3-codex",
+	"gpt-5.3-codex-high":         "gpt-5.3-codex",
+	"gpt-5.3-codex-xhigh":        "gpt-5.3-codex",
+	"gpt-5.1-codex":              "gpt-5.1-codex",
+	"gpt-5.1-codex-low":          "gpt-5.1-codex",
+	"gpt-5.1-codex-medium":       "gpt-5.1-codex",
+	"gpt-5.1-codex-high":         "gpt-5.1-codex",
+	"gpt-5.1-codex-max":          "gpt-5.1-codex-max",
+	"gpt-5.1-codex-max-low":      "gpt-5.1-codex-max",
+	"gpt-5.1-codex-max-medium":   "gpt-5.1-codex-max",
+	"gpt-5.1-codex-max-high":     "gpt-5.1-codex-max",
+	"gpt-5.1-codex-max-xhigh":    "gpt-5.1-codex-max",
+	"gpt-5.2":                    "gpt-5.2",
+	"gpt-5.2-none":               "gpt-5.2",
+	"gpt-5.2-low":                "gpt-5.2",
+	"gpt-5.2-medium":             "gpt-5.2",
+	"gpt-5.2-high":               "gpt-5.2",
+	"gpt-5.2-xhigh":              "gpt-5.2",
+	"gpt-5.2-codex":              "gpt-5.2-codex",
+	"gpt-5.2-codex-low":          "gpt-5.2-codex",
+	"gpt-5.2-codex-medium":       "gpt-5.2-codex",
+	"gpt-5.2-codex-high":         "gpt-5.2-codex",
+	"gpt-5.2-codex-xhigh":        "gpt-5.2-codex",
+	"gpt-5.1-codex-mini":         "gpt-5.1-codex-mini",
+	"gpt-5.1-codex-mini-medium":  "gpt-5.1-codex-mini",
+	"gpt-5.1-codex-mini-high":    "gpt-5.1-codex-mini",
+	"gpt-5.1":                    "gpt-5.1",
+	"gpt-5.1-none":               "gpt-5.1",
+	"gpt-5.1-low":                "gpt-5.1",
+	"gpt-5.1-medium":             "gpt-5.1",
+	"gpt-5.1-high":               "gpt-5.1",
+	"gpt-5.1-chat-latest":        "gpt-5.1",
+	"gpt-5-codex":                "gpt-5.1-codex",
+	"codex-mini-latest":          "gpt-5.1-codex-mini",
+	"gpt-5-codex-mini":           "gpt-5.1-codex-mini",
+	"gpt-5-codex-mini-medium":    "gpt-5.1-codex-mini",
+	"gpt-5-codex-mini-high":      "gpt-5.1-codex-mini",
+	"gpt-5":                      "gpt-5.1",
+	"gpt-5-mini":                 "gpt-5.1",
+	"gpt-5-nano":                 "gpt-5.1",
 }
 
 type codexTransformResult struct {
@@ -62,14 +70,10 @@ type codexTransformResult struct {
 	PromptCacheKey  string
 }
 
-type opencodeCacheMetadata struct {
-	ETag        string `json:"etag"`
-	LastFetch   string `json:"lastFetch,omitempty"`
-	LastChecked int64  `json:"lastChecked"`
-}
-
-func applyCodexOAuthTransform(reqBody map[string]any) codexTransformResult {
+func applyCodexOAuthTransform(reqBody map[string]any, isCodexCLI bool) codexTransformResult {
 	result := codexTransformResult{}
+	// 工具续链需求会影响存储策略与 input 过滤逻辑。
+	needsToolContinuation := NeedsToolContinuation(reqBody)
 
 	model := ""
 	if v, ok := reqBody["model"].(string); ok {
@@ -84,6 +88,8 @@ func applyCodexOAuthTransform(reqBody map[string]any) codexTransformResult {
 		result.NormalizedModel = normalizedModel
 	}
 
+	// OAuth 走 ChatGPT internal API 时，store 必须为 false；显式 true 也会强制覆盖。
+	// 避免上游返回 "Store must be set to false"。
 	if v, ok := reqBody["store"].(bool); !ok || v {
 		reqBody["store"] = false
 		result.Modified = true
@@ -93,13 +99,19 @@ func applyCodexOAuthTransform(reqBody map[string]any) codexTransformResult {
 		result.Modified = true
 	}
 
-	if _, ok := reqBody["max_output_tokens"]; ok {
-		delete(reqBody, "max_output_tokens")
-		result.Modified = true
-	}
-	if _, ok := reqBody["max_completion_tokens"]; ok {
-		delete(reqBody, "max_completion_tokens")
-		result.Modified = true
+	// Strip parameters unsupported by codex models via the Responses API.
+	for _, key := range []string{
+		"max_output_tokens",
+		"max_completion_tokens",
+		"temperature",
+		"top_p",
+		"frequency_penalty",
+		"presence_penalty",
+	} {
+		if _, ok := reqBody[key]; ok {
+			delete(reqBody, key)
+			result.Modified = true
+		}
 	}
 
 	if normalizeCodexTools(reqBody) {
@@ -110,19 +122,14 @@ func applyCodexOAuthTransform(reqBody map[string]any) codexTransformResult {
 		result.PromptCacheKey = strings.TrimSpace(v)
 	}
 
-	instructions := strings.TrimSpace(getOpenCodeCodexHeader())
-	existingInstructions, _ := reqBody["instructions"].(string)
-	existingInstructions = strings.TrimSpace(existingInstructions)
-
-	if instructions != "" {
-		if existingInstructions != instructions {
-			reqBody["instructions"] = instructions
-			result.Modified = true
-		}
+	// instructions 处理逻辑：根据是否是 Codex CLI 分别调用不同方法
+	if applyInstructions(reqBody, isCodexCLI) {
+		result.Modified = true
 	}
 
+	// 续链场景保留 item_reference 与 id，避免 call_id 上下文丢失。
 	if input, ok := reqBody["input"].([]any); ok {
-		input = filterCodexInput(input)
+		input = filterCodexInput(input, needsToolContinuation)
 		reqBody["input"] = input
 		result.Modified = true
 	}
@@ -152,6 +159,12 @@ func normalizeCodexModel(model string) string {
 	}
 	if strings.Contains(normalized, "gpt-5.2") || strings.Contains(normalized, "gpt 5.2") {
 		return "gpt-5.2"
+	}
+	if strings.Contains(normalized, "gpt-5.3-codex") || strings.Contains(normalized, "gpt 5.3 codex") {
+		return "gpt-5.3-codex"
+	}
+	if strings.Contains(normalized, "gpt-5.3") || strings.Contains(normalized, "gpt 5.3") {
+		return "gpt-5.3-codex"
 	}
 	if strings.Contains(normalized, "gpt-5.1-codex-max") || strings.Contains(normalized, "gpt 5.1 codex max") {
 		return "gpt-5.1-codex-max"
@@ -196,53 +209,94 @@ func getNormalizedCodexModel(modelID string) string {
 	return ""
 }
 
-func getOpenCodeCachedPrompt(url, cacheFileName, metaFileName string) string {
-	cacheDir := codexCachePath("")
-	if cacheDir == "" {
-		return ""
-	}
-	cacheFile := filepath.Join(cacheDir, cacheFileName)
-	metaFile := filepath.Join(cacheDir, metaFileName)
-
-	var cachedContent string
-	if content, ok := readFile(cacheFile); ok {
-		cachedContent = content
-	}
-
-	var meta opencodeCacheMetadata
-	if loadJSON(metaFile, &meta) && meta.LastChecked > 0 && cachedContent != "" {
-		if time.Since(time.UnixMilli(meta.LastChecked)) < codexCacheTTL {
-			return cachedContent
-		}
-	}
-
-	content, etag, status, err := fetchWithETag(url, meta.ETag)
-	if err == nil && status == http.StatusNotModified && cachedContent != "" {
-		return cachedContent
-	}
-	if err == nil && status >= 200 && status < 300 && content != "" {
-		_ = writeFile(cacheFile, content)
-		meta = opencodeCacheMetadata{
-			ETag:        etag,
-			LastFetch:   time.Now().UTC().Format(time.RFC3339),
-			LastChecked: time.Now().UnixMilli(),
-		}
-		_ = writeJSON(metaFile, meta)
-		return content
-	}
-
-	return cachedContent
+func getOpenCodeCodexHeader() string {
+	// 兼容保留：历史上这里会从 opencode 仓库拉取 codex_header.txt。
+	// 现在我们与 Codex CLI 一致，直接使用仓库内置的 instructions，避免读写缓存与外网依赖。
+	return getCodexCLIInstructions()
 }
 
-func getOpenCodeCodexHeader() string {
-	return getOpenCodeCachedPrompt(opencodeCodexHeaderURL, "opencode-codex-header.txt", "opencode-codex-header-meta.json")
+func getCodexCLIInstructions() string {
+	return codexCLIInstructions
 }
 
 func GetOpenCodeInstructions() string {
 	return getOpenCodeCodexHeader()
 }
 
-func filterCodexInput(input []any) []any {
+// GetCodexCLIInstructions 返回内置的 Codex CLI 指令内容。
+func GetCodexCLIInstructions() string {
+	return getCodexCLIInstructions()
+}
+
+// applyInstructions 处理 instructions 字段
+// isCodexCLI=true: 仅补充缺失的 instructions（使用内置 Codex CLI 指令）
+// isCodexCLI=false: 优先使用内置 Codex CLI 指令覆盖
+func applyInstructions(reqBody map[string]any, isCodexCLI bool) bool {
+	if isCodexCLI {
+		return applyCodexCLIInstructions(reqBody)
+	}
+	return applyOpenCodeInstructions(reqBody)
+}
+
+// applyCodexCLIInstructions 为 Codex CLI 请求补充缺失的 instructions
+// 仅在 instructions 为空时添加内置 Codex CLI 指令（不依赖 opencode 缓存/回源）
+func applyCodexCLIInstructions(reqBody map[string]any) bool {
+	if !isInstructionsEmpty(reqBody) {
+		return false // 已有有效 instructions，不修改
+	}
+
+	instructions := strings.TrimSpace(getCodexCLIInstructions())
+	if instructions != "" {
+		reqBody["instructions"] = instructions
+		return true
+	}
+
+	return false
+}
+
+// applyOpenCodeInstructions 为非 Codex CLI 请求应用内置 Codex CLI 指令（兼容历史函数名）
+// 优先使用内置 Codex CLI 指令覆盖
+func applyOpenCodeInstructions(reqBody map[string]any) bool {
+	instructions := strings.TrimSpace(getOpenCodeCodexHeader())
+	existingInstructions, _ := reqBody["instructions"].(string)
+	existingInstructions = strings.TrimSpace(existingInstructions)
+
+	if instructions != "" {
+		if existingInstructions != instructions {
+			reqBody["instructions"] = instructions
+			return true
+		}
+	} else if existingInstructions == "" {
+		codexInstructions := strings.TrimSpace(getCodexCLIInstructions())
+		if codexInstructions != "" {
+			reqBody["instructions"] = codexInstructions
+			return true
+		}
+	}
+
+	return false
+}
+
+// isInstructionsEmpty 检查 instructions 字段是否为空
+// 处理以下情况：字段不存在、nil、空字符串、纯空白字符串
+func isInstructionsEmpty(reqBody map[string]any) bool {
+	val, exists := reqBody["instructions"]
+	if !exists {
+		return true
+	}
+	if val == nil {
+		return true
+	}
+	str, ok := val.(string)
+	if !ok {
+		return true
+	}
+	return strings.TrimSpace(str) == ""
+}
+
+// filterCodexInput 按需过滤 item_reference 与 id。
+// preserveReferences 为 true 时保持引用与 id，以满足续链请求对上下文的依赖。
+func filterCodexInput(input []any, preserveReferences bool) []any {
 	filtered := make([]any, 0, len(input))
 	for _, item := range input {
 		m, ok := item.(map[string]any)
@@ -250,13 +304,60 @@ func filterCodexInput(input []any) []any {
 			filtered = append(filtered, item)
 			continue
 		}
-		if typ, ok := m["type"].(string); ok && typ == "item_reference" {
+		typ, _ := m["type"].(string)
+		if typ == "item_reference" {
+			if !preserveReferences {
+				continue
+			}
+			newItem := make(map[string]any, len(m))
+			for key, value := range m {
+				newItem[key] = value
+			}
+			filtered = append(filtered, newItem)
 			continue
 		}
-		delete(m, "id")
-		filtered = append(filtered, m)
+
+		newItem := m
+		copied := false
+		// 仅在需要修改字段时创建副本，避免直接改写原始输入。
+		ensureCopy := func() {
+			if copied {
+				return
+			}
+			newItem = make(map[string]any, len(m))
+			for key, value := range m {
+				newItem[key] = value
+			}
+			copied = true
+		}
+
+		if isCodexToolCallItemType(typ) {
+			if callID, ok := m["call_id"].(string); !ok || strings.TrimSpace(callID) == "" {
+				if id, ok := m["id"].(string); ok && strings.TrimSpace(id) != "" {
+					ensureCopy()
+					newItem["call_id"] = id
+				}
+			}
+		}
+
+		if !preserveReferences {
+			ensureCopy()
+			delete(newItem, "id")
+			if !isCodexToolCallItemType(typ) {
+				delete(newItem, "call_id")
+			}
+		}
+
+		filtered = append(filtered, newItem)
 	}
 	return filtered
+}
+
+func isCodexToolCallItemType(typ string) bool {
+	if typ == "" {
+		return false
+	}
+	return strings.HasSuffix(typ, "_call") || strings.HasSuffix(typ, "_call_output")
 }
 
 func normalizeCodexTools(reqBody map[string]any) bool {
@@ -270,19 +371,35 @@ func normalizeCodexTools(reqBody map[string]any) bool {
 	}
 
 	modified := false
-	for idx, tool := range tools {
+	validTools := make([]any, 0, len(tools))
+
+	for _, tool := range tools {
 		toolMap, ok := tool.(map[string]any)
 		if !ok {
+			// Keep unknown structure as-is to avoid breaking upstream behavior.
+			validTools = append(validTools, tool)
 			continue
 		}
 
 		toolType, _ := toolMap["type"].(string)
-		if strings.TrimSpace(toolType) != "function" {
+		toolType = strings.TrimSpace(toolType)
+		if toolType != "function" {
+			validTools = append(validTools, toolMap)
 			continue
 		}
 
-		function, ok := toolMap["function"].(map[string]any)
-		if !ok {
+		// OpenAI Responses-style tools use top-level name/parameters.
+		if name, ok := toolMap["name"].(string); ok && strings.TrimSpace(name) != "" {
+			validTools = append(validTools, toolMap)
+			continue
+		}
+
+		// ChatCompletions-style tools use {type:"function", function:{...}}.
+		functionValue, hasFunction := toolMap["function"]
+		function, ok := functionValue.(map[string]any)
+		if !hasFunction || functionValue == nil || !ok || function == nil {
+			// Drop invalid function tools.
+			modified = true
 			continue
 		}
 
@@ -311,94 +428,12 @@ func normalizeCodexTools(reqBody map[string]any) bool {
 			}
 		}
 
-		tools[idx] = toolMap
+		validTools = append(validTools, toolMap)
 	}
 
 	if modified {
-		reqBody["tools"] = tools
+		reqBody["tools"] = validTools
 	}
 
 	return modified
-}
-
-func codexCachePath(filename string) string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	cacheDir := filepath.Join(home, ".opencode", "cache")
-	if filename == "" {
-		return cacheDir
-	}
-	return filepath.Join(cacheDir, filename)
-}
-
-func readFile(path string) (string, bool) {
-	if path == "" {
-		return "", false
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", false
-	}
-	return string(data), true
-}
-
-func writeFile(path, content string) error {
-	if path == "" {
-		return fmt.Errorf("empty cache path")
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	return os.WriteFile(path, []byte(content), 0o644)
-}
-
-func loadJSON(path string, target any) bool {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return false
-	}
-	if err := json.Unmarshal(data, target); err != nil {
-		return false
-	}
-	return true
-}
-
-func writeJSON(path string, value any) error {
-	if path == "" {
-		return fmt.Errorf("empty json path")
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	data, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, data, 0o644)
-}
-
-func fetchWithETag(url, etag string) (string, string, int, error) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return "", "", 0, err
-	}
-	req.Header.Set("User-Agent", "sub2api-codex")
-	if etag != "" {
-		req.Header.Set("If-None-Match", etag)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", "", 0, err
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", "", resp.StatusCode, err
-	}
-	return string(body), resp.Header.Get("etag"), resp.StatusCode, nil
 }

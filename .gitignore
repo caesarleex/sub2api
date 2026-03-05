@@ -83,6 +83,8 @@ temp/
 *.log
 *.bak
 .cache/
+.dev/
+.serena/
 
 # ===================
 # 构建产物
@@ -114,18 +116,20 @@ backend/.installed
 # ===================
 tests
 CLAUDE.md
-AGENTS.md
 .claude
 scripts
 .code-review-state
-openspec/
-docs/
+#openspec/
 code-reviews/
-AGENTS.md
+#AGENTS.md
 backend/cmd/server/server
 deploy/docker-compose.override.yml
 .gocache/
 vite.config.js
-!docs/
 docs/*
-!docs/dependency-security.md
+.serena/
+.codex/
+frontend/coverage/
+aicodex
+output/
+

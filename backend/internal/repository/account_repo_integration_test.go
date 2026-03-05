@@ -21,11 +21,56 @@ type AccountRepoSuite struct {
 	repo   *accountRepository
 }
 
+type schedulerCacheRecorder struct {
+	setAccounts []*service.Account
+}
+
+func (s *schedulerCacheRecorder) GetSnapshot(ctx context.Context, bucket service.SchedulerBucket) ([]*service.Account, bool, error) {
+	return nil, false, nil
+}
+
+func (s *schedulerCacheRecorder) SetSnapshot(ctx context.Context, bucket service.SchedulerBucket, accounts []service.Account) error {
+	return nil
+}
+
+func (s *schedulerCacheRecorder) GetAccount(ctx context.Context, accountID int64) (*service.Account, error) {
+	return nil, nil
+}
+
+func (s *schedulerCacheRecorder) SetAccount(ctx context.Context, account *service.Account) error {
+	s.setAccounts = append(s.setAccounts, account)
+	return nil
+}
+
+func (s *schedulerCacheRecorder) DeleteAccount(ctx context.Context, accountID int64) error {
+	return nil
+}
+
+func (s *schedulerCacheRecorder) UpdateLastUsed(ctx context.Context, updates map[int64]time.Time) error {
+	return nil
+}
+
+func (s *schedulerCacheRecorder) TryLockBucket(ctx context.Context, bucket service.SchedulerBucket, ttl time.Duration) (bool, error) {
+	return true, nil
+}
+
+func (s *schedulerCacheRecorder) ListBuckets(ctx context.Context) ([]service.SchedulerBucket, error) {
+	return nil, nil
+}
+
+func (s *schedulerCacheRecorder) GetOutboxWatermark(ctx context.Context) (int64, error) {
+	return 0, nil
+}
+
+func (s *schedulerCacheRecorder) SetOutboxWatermark(ctx context.Context, id int64) error {
+	return nil
+}
+
 func (s *AccountRepoSuite) SetupTest() {
 	s.ctx = context.Background()
 	tx := testEntTx(s.T())
 	s.client = tx.Client()
-	s.repo = newAccountRepositoryWithSQL(s.client, tx)
+	s.repo = newAccountRepositoryWithSQL(s.client, tx, nil)
 }
 
 func TestAccountRepoSuite(t *testing.T) {
@@ -71,6 +116,20 @@ func (s *AccountRepoSuite) TestUpdate() {
 	got, err := s.repo.GetByID(s.ctx, account.ID)
 	s.Require().NoError(err, "GetByID after update")
 	s.Require().Equal("updated", got.Name)
+}
+
+func (s *AccountRepoSuite) TestUpdate_SyncSchedulerSnapshotOnDisabled() {
+	account := mustCreateAccount(s.T(), s.client, &service.Account{Name: "sync-update", Status: service.StatusActive, Schedulable: true})
+	cacheRecorder := &schedulerCacheRecorder{}
+	s.repo.schedulerCache = cacheRecorder
+
+	account.Status = service.StatusDisabled
+	err := s.repo.Update(s.ctx, account)
+	s.Require().NoError(err, "Update")
+
+	s.Require().Len(cacheRecorder.setAccounts, 1)
+	s.Require().Equal(account.ID, cacheRecorder.setAccounts[0].ID)
+	s.Require().Equal(service.StatusDisabled, cacheRecorder.setAccounts[0].Status)
 }
 
 func (s *AccountRepoSuite) TestDelete() {
@@ -174,12 +233,12 @@ func (s *AccountRepoSuite) TestListWithFilters() {
 			// 每个 case 重新获取隔离资源
 			tx := testEntTx(s.T())
 			client := tx.Client()
-			repo := newAccountRepositoryWithSQL(client, tx)
+			repo := newAccountRepositoryWithSQL(client, tx, nil)
 			ctx := context.Background()
 
 			tt.setup(client)
 
-			accounts, _, err := repo.ListWithFilters(ctx, pagination.PaginationParams{Page: 1, PageSize: 10}, tt.platform, tt.accType, tt.status, tt.search)
+			accounts, _, err := repo.ListWithFilters(ctx, pagination.PaginationParams{Page: 1, PageSize: 10}, tt.platform, tt.accType, tt.status, tt.search, 0)
 			s.Require().NoError(err)
 			s.Require().Len(accounts, tt.wantCount)
 			if tt.validate != nil {
@@ -246,7 +305,7 @@ func (s *AccountRepoSuite) TestPreload_And_VirtualFields() {
 	s.Require().Len(got.Groups, 1, "expected Groups to be populated")
 	s.Require().Equal(group.ID, got.Groups[0].ID)
 
-	accounts, page, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{Page: 1, PageSize: 10}, "", "", "", "acc")
+	accounts, page, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{Page: 1, PageSize: 10}, "", "", "", "acc", 0)
 	s.Require().NoError(err, "ListWithFilters")
 	s.Require().Equal(int64(1), page.Total)
 	s.Require().Len(accounts, 1)
@@ -365,12 +424,38 @@ func (s *AccountRepoSuite) TestListSchedulableByGroupIDAndPlatform() {
 
 func (s *AccountRepoSuite) TestSetSchedulable() {
 	account := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-sched", Schedulable: true})
+	cacheRecorder := &schedulerCacheRecorder{}
+	s.repo.schedulerCache = cacheRecorder
 
 	s.Require().NoError(s.repo.SetSchedulable(s.ctx, account.ID, false))
 
 	got, err := s.repo.GetByID(s.ctx, account.ID)
 	s.Require().NoError(err)
 	s.Require().False(got.Schedulable)
+	s.Require().Len(cacheRecorder.setAccounts, 1)
+	s.Require().Equal(account.ID, cacheRecorder.setAccounts[0].ID)
+}
+
+func (s *AccountRepoSuite) TestBulkUpdate_SyncSchedulerSnapshotOnDisabled() {
+	account1 := mustCreateAccount(s.T(), s.client, &service.Account{Name: "bulk-1", Status: service.StatusActive, Schedulable: true})
+	account2 := mustCreateAccount(s.T(), s.client, &service.Account{Name: "bulk-2", Status: service.StatusActive, Schedulable: true})
+	cacheRecorder := &schedulerCacheRecorder{}
+	s.repo.schedulerCache = cacheRecorder
+
+	disabled := service.StatusDisabled
+	rows, err := s.repo.BulkUpdate(s.ctx, []int64{account1.ID, account2.ID}, service.AccountBulkUpdate{
+		Status: &disabled,
+	})
+	s.Require().NoError(err)
+	s.Require().Equal(int64(2), rows)
+
+	s.Require().Len(cacheRecorder.setAccounts, 2)
+	ids := map[int64]struct{}{}
+	for _, acc := range cacheRecorder.setAccounts {
+		ids[acc.ID] = struct{}{}
+	}
+	s.Require().Contains(ids, account1.ID)
+	s.Require().Contains(ids, account2.ID)
 }
 
 // --- SetOverloaded / SetRateLimited / ClearRateLimit ---
@@ -413,6 +498,38 @@ func (s *AccountRepoSuite) TestClearRateLimit() {
 	s.Require().Nil(got.RateLimitedAt)
 	s.Require().Nil(got.RateLimitResetAt)
 	s.Require().Nil(got.OverloadUntil)
+}
+
+func (s *AccountRepoSuite) TestTempUnschedulableFieldsLoadedByGetByIDAndGetByIDs() {
+	acc1 := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-temp-1"})
+	acc2 := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-temp-2"})
+
+	until := time.Now().Add(15 * time.Minute).UTC().Truncate(time.Second)
+	reason := `{"rule":"429","matched_keyword":"too many requests"}`
+	s.Require().NoError(s.repo.SetTempUnschedulable(s.ctx, acc1.ID, until, reason))
+
+	gotByID, err := s.repo.GetByID(s.ctx, acc1.ID)
+	s.Require().NoError(err)
+	s.Require().NotNil(gotByID.TempUnschedulableUntil)
+	s.Require().WithinDuration(until, *gotByID.TempUnschedulableUntil, time.Second)
+	s.Require().Equal(reason, gotByID.TempUnschedulableReason)
+
+	gotByIDs, err := s.repo.GetByIDs(s.ctx, []int64{acc2.ID, acc1.ID})
+	s.Require().NoError(err)
+	s.Require().Len(gotByIDs, 2)
+	s.Require().Equal(acc2.ID, gotByIDs[0].ID)
+	s.Require().Nil(gotByIDs[0].TempUnschedulableUntil)
+	s.Require().Equal("", gotByIDs[0].TempUnschedulableReason)
+	s.Require().Equal(acc1.ID, gotByIDs[1].ID)
+	s.Require().NotNil(gotByIDs[1].TempUnschedulableUntil)
+	s.Require().WithinDuration(until, *gotByIDs[1].TempUnschedulableUntil, time.Second)
+	s.Require().Equal(reason, gotByIDs[1].TempUnschedulableReason)
+
+	s.Require().NoError(s.repo.ClearTempUnschedulable(s.ctx, acc1.ID))
+	cleared, err := s.repo.GetByID(s.ctx, acc1.ID)
+	s.Require().NoError(err)
+	s.Require().Nil(cleared.TempUnschedulableUntil)
+	s.Require().Equal("", cleared.TempUnschedulableReason)
 }
 
 // --- UpdateLastUsed ---

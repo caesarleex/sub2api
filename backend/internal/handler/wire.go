@@ -13,6 +13,8 @@ func ProvideAdminHandlers(
 	userHandler *admin.UserHandler,
 	groupHandler *admin.GroupHandler,
 	accountHandler *admin.AccountHandler,
+	announcementHandler *admin.AnnouncementHandler,
+	dataManagementHandler *admin.DataManagementHandler,
 	oauthHandler *admin.OAuthHandler,
 	openaiOAuthHandler *admin.OpenAIOAuthHandler,
 	geminiOAuthHandler *admin.GeminiOAuthHandler,
@@ -21,16 +23,21 @@ func ProvideAdminHandlers(
 	redeemHandler *admin.RedeemHandler,
 	promoHandler *admin.PromoHandler,
 	settingHandler *admin.SettingHandler,
+	opsHandler *admin.OpsHandler,
 	systemHandler *admin.SystemHandler,
 	subscriptionHandler *admin.SubscriptionHandler,
 	usageHandler *admin.UsageHandler,
 	userAttributeHandler *admin.UserAttributeHandler,
+	errorPassthroughHandler *admin.ErrorPassthroughHandler,
+	apiKeyHandler *admin.AdminAPIKeyHandler,
 ) *AdminHandlers {
 	return &AdminHandlers{
 		Dashboard:        dashboardHandler,
 		User:             userHandler,
 		Group:            groupHandler,
 		Account:          accountHandler,
+		Announcement:     announcementHandler,
+		DataManagement:   dataManagementHandler,
 		OAuth:            oauthHandler,
 		OpenAIOAuth:      openaiOAuthHandler,
 		GeminiOAuth:      geminiOAuthHandler,
@@ -39,16 +46,19 @@ func ProvideAdminHandlers(
 		Redeem:           redeemHandler,
 		Promo:            promoHandler,
 		Setting:          settingHandler,
+		Ops:              opsHandler,
 		System:           systemHandler,
 		Subscription:     subscriptionHandler,
 		Usage:            usageHandler,
 		UserAttribute:    userAttributeHandler,
+		ErrorPassthrough: errorPassthroughHandler,
+		APIKey:           apiKeyHandler,
 	}
 }
 
 // ProvideSystemHandler creates admin.SystemHandler with UpdateService
-func ProvideSystemHandler(updateService *service.UpdateService) *admin.SystemHandler {
-	return admin.NewSystemHandler(updateService)
+func ProvideSystemHandler(updateService *service.UpdateService, lockService *service.SystemOperationLockService) *admin.SystemHandler {
+	return admin.NewSystemHandler(updateService, lockService)
 }
 
 // ProvideSettingHandler creates SettingHandler with version from BuildInfo
@@ -64,10 +74,16 @@ func ProvideHandlers(
 	usageHandler *UsageHandler,
 	redeemHandler *RedeemHandler,
 	subscriptionHandler *SubscriptionHandler,
+	announcementHandler *AnnouncementHandler,
 	adminHandlers *AdminHandlers,
 	gatewayHandler *GatewayHandler,
 	openaiGatewayHandler *OpenAIGatewayHandler,
+	soraGatewayHandler *SoraGatewayHandler,
+	soraClientHandler *SoraClientHandler,
 	settingHandler *SettingHandler,
+	totpHandler *TotpHandler,
+	_ *service.IdempotencyCoordinator,
+	_ *service.IdempotencyCleanupService,
 ) *Handlers {
 	return &Handlers{
 		Auth:          authHandler,
@@ -76,10 +92,14 @@ func ProvideHandlers(
 		Usage:         usageHandler,
 		Redeem:        redeemHandler,
 		Subscription:  subscriptionHandler,
+		Announcement:  announcementHandler,
 		Admin:         adminHandlers,
 		Gateway:       gatewayHandler,
 		OpenAIGateway: openaiGatewayHandler,
+		SoraGateway:   soraGatewayHandler,
+		SoraClient:    soraClientHandler,
 		Setting:       settingHandler,
+		Totp:          totpHandler,
 	}
 }
 
@@ -92,8 +112,11 @@ var ProviderSet = wire.NewSet(
 	NewUsageHandler,
 	NewRedeemHandler,
 	NewSubscriptionHandler,
+	NewAnnouncementHandler,
 	NewGatewayHandler,
 	NewOpenAIGatewayHandler,
+	NewSoraGatewayHandler,
+	NewTotpHandler,
 	ProvideSettingHandler,
 
 	// Admin handlers
@@ -101,6 +124,8 @@ var ProviderSet = wire.NewSet(
 	admin.NewUserHandler,
 	admin.NewGroupHandler,
 	admin.NewAccountHandler,
+	admin.NewAnnouncementHandler,
+	admin.NewDataManagementHandler,
 	admin.NewOAuthHandler,
 	admin.NewOpenAIOAuthHandler,
 	admin.NewGeminiOAuthHandler,
@@ -109,10 +134,13 @@ var ProviderSet = wire.NewSet(
 	admin.NewRedeemHandler,
 	admin.NewPromoHandler,
 	admin.NewSettingHandler,
+	admin.NewOpsHandler,
 	ProvideSystemHandler,
 	admin.NewSubscriptionHandler,
 	admin.NewUsageHandler,
 	admin.NewUserAttributeHandler,
+	admin.NewErrorPassthroughHandler,
+	admin.NewAdminAPIKeyHandler,
 
 	// AdminHandlers and Handlers constructors
 	ProvideAdminHandlers,

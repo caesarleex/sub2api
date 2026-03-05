@@ -11,6 +11,7 @@ import (
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/stretchr/testify/suite"
@@ -34,6 +35,12 @@ func (s *UsageLogRepoSuite) SetupTest() {
 
 func TestUsageLogRepoSuite(t *testing.T) {
 	suite.Run(t, new(UsageLogRepoSuite))
+}
+
+// truncateToDayUTC 截断到 UTC 日期边界（测试辅助函数）
+func truncateToDayUTC(t time.Time) time.Time {
+	t = t.UTC()
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func (s *UsageLogRepoSuite) createUsageLog(user *service.User, apiKey *service.APIKey, account *service.Account, inputTokens, outputTokens int, cost float64, createdAt time.Time) *service.UsageLog {
@@ -93,6 +100,90 @@ func (s *UsageLogRepoSuite) TestGetByID() {
 func (s *UsageLogRepoSuite) TestGetByID_NotFound() {
 	_, err := s.repo.GetByID(s.ctx, 999999)
 	s.Require().Error(err, "expected error for non-existent ID")
+}
+
+func (s *UsageLogRepoSuite) TestGetByID_ReturnsAccountRateMultiplier() {
+	user := mustCreateUser(s.T(), s.client, &service.User{Email: "getbyid-mult@test.com"})
+	apiKey := mustCreateApiKey(s.T(), s.client, &service.APIKey{UserID: user.ID, Key: "sk-getbyid-mult", Name: "k"})
+	account := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-getbyid-mult"})
+
+	m := 0.5
+	log := &service.UsageLog{
+		UserID:                user.ID,
+		APIKeyID:              apiKey.ID,
+		AccountID:             account.ID,
+		RequestID:             uuid.New().String(),
+		Model:                 "claude-3",
+		InputTokens:           10,
+		OutputTokens:          20,
+		TotalCost:             1.0,
+		ActualCost:            2.0,
+		AccountRateMultiplier: &m,
+		CreatedAt:             timezone.Today().Add(2 * time.Hour),
+	}
+	_, err := s.repo.Create(s.ctx, log)
+	s.Require().NoError(err)
+
+	got, err := s.repo.GetByID(s.ctx, log.ID)
+	s.Require().NoError(err)
+	s.Require().NotNil(got.AccountRateMultiplier)
+	s.Require().InEpsilon(0.5, *got.AccountRateMultiplier, 0.0001)
+}
+
+func (s *UsageLogRepoSuite) TestGetByID_ReturnsOpenAIWSMode() {
+	user := mustCreateUser(s.T(), s.client, &service.User{Email: "getbyid-ws@test.com"})
+	apiKey := mustCreateApiKey(s.T(), s.client, &service.APIKey{UserID: user.ID, Key: "sk-getbyid-ws", Name: "k"})
+	account := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-getbyid-ws"})
+
+	log := &service.UsageLog{
+		UserID:       user.ID,
+		APIKeyID:     apiKey.ID,
+		AccountID:    account.ID,
+		RequestID:    uuid.New().String(),
+		Model:        "gpt-5.3-codex",
+		InputTokens:  10,
+		OutputTokens: 20,
+		TotalCost:    1.0,
+		ActualCost:   1.0,
+		OpenAIWSMode: true,
+		CreatedAt:    timezone.Today().Add(3 * time.Hour),
+	}
+	_, err := s.repo.Create(s.ctx, log)
+	s.Require().NoError(err)
+
+	got, err := s.repo.GetByID(s.ctx, log.ID)
+	s.Require().NoError(err)
+	s.Require().True(got.OpenAIWSMode)
+}
+
+func (s *UsageLogRepoSuite) TestGetByID_ReturnsRequestTypeAndLegacyFallback() {
+	user := mustCreateUser(s.T(), s.client, &service.User{Email: "getbyid-request-type@test.com"})
+	apiKey := mustCreateApiKey(s.T(), s.client, &service.APIKey{UserID: user.ID, Key: "sk-getbyid-request-type", Name: "k"})
+	account := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-getbyid-request-type"})
+
+	log := &service.UsageLog{
+		UserID:       user.ID,
+		APIKeyID:     apiKey.ID,
+		AccountID:    account.ID,
+		RequestID:    uuid.New().String(),
+		Model:        "gpt-5.3-codex",
+		RequestType:  service.RequestTypeWSV2,
+		Stream:       true,
+		OpenAIWSMode: false,
+		InputTokens:  10,
+		OutputTokens: 20,
+		TotalCost:    1.0,
+		ActualCost:   1.0,
+		CreatedAt:    timezone.Today().Add(4 * time.Hour),
+	}
+	_, err := s.repo.Create(s.ctx, log)
+	s.Require().NoError(err)
+
+	got, err := s.repo.GetByID(s.ctx, log.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(service.RequestTypeWSV2, got.RequestType)
+	s.Require().True(got.Stream)
+	s.Require().True(got.OpenAIWSMode)
 }
 
 // --- Delete ---
@@ -204,7 +295,7 @@ func (s *UsageLogRepoSuite) TestDashboardStats_TodayTotalsAndPerformance() {
 
 	userToday := mustCreateUser(s.T(), s.client, &service.User{
 		Email:     "today@example.com",
-		CreatedAt: maxTime(todayStart.Add(10*time.Second), now.Add(-10*time.Second)),
+		CreatedAt: testMaxTime(todayStart.Add(10*time.Second), now.Add(-10*time.Second)),
 		UpdatedAt: now,
 	})
 	userOld := mustCreateUser(s.T(), s.client, &service.User{
@@ -237,7 +328,7 @@ func (s *UsageLogRepoSuite) TestDashboardStats_TodayTotalsAndPerformance() {
 		TotalCost:           1.5,
 		ActualCost:          1.2,
 		DurationMs:          &d1,
-		CreatedAt:           maxTime(todayStart.Add(2*time.Minute), now.Add(-2*time.Minute)),
+		CreatedAt:           testMaxTime(todayStart.Add(2*time.Minute), now.Add(-2*time.Minute)),
 	}
 	_, err = s.repo.Create(s.ctx, logToday)
 	s.Require().NoError(err, "Create logToday")
@@ -403,19 +494,64 @@ func (s *UsageLogRepoSuite) TestGetAccountTodayStats() {
 	apiKey := mustCreateApiKey(s.T(), s.client, &service.APIKey{UserID: user.ID, Key: "sk-acctoday", Name: "k"})
 	account := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-today"})
 
-	s.createUsageLog(user, apiKey, account, 10, 20, 0.5, time.Now())
+	createdAt := timezone.Today().Add(1 * time.Hour)
+
+	m1 := 1.5
+	m2 := 0.0
+	_, err := s.repo.Create(s.ctx, &service.UsageLog{
+		UserID:                user.ID,
+		APIKeyID:              apiKey.ID,
+		AccountID:             account.ID,
+		RequestID:             uuid.New().String(),
+		Model:                 "claude-3",
+		InputTokens:           10,
+		OutputTokens:          20,
+		TotalCost:             1.0,
+		ActualCost:            2.0,
+		AccountRateMultiplier: &m1,
+		CreatedAt:             createdAt,
+	})
+	s.Require().NoError(err)
+	_, err = s.repo.Create(s.ctx, &service.UsageLog{
+		UserID:                user.ID,
+		APIKeyID:              apiKey.ID,
+		AccountID:             account.ID,
+		RequestID:             uuid.New().String(),
+		Model:                 "claude-3",
+		InputTokens:           5,
+		OutputTokens:          5,
+		TotalCost:             0.5,
+		ActualCost:            1.0,
+		AccountRateMultiplier: &m2,
+		CreatedAt:             createdAt,
+	})
+	s.Require().NoError(err)
 
 	stats, err := s.repo.GetAccountTodayStats(s.ctx, account.ID)
 	s.Require().NoError(err, "GetAccountTodayStats")
-	s.Require().Equal(int64(1), stats.Requests)
-	s.Require().Equal(int64(30), stats.Tokens)
+	s.Require().Equal(int64(2), stats.Requests)
+	s.Require().Equal(int64(40), stats.Tokens)
+	// account cost = SUM(total_cost * account_rate_multiplier)
+	s.Require().InEpsilon(1.5, stats.Cost, 0.0001)
+	// standard cost = SUM(total_cost)
+	s.Require().InEpsilon(1.5, stats.StandardCost, 0.0001)
+	// user cost = SUM(actual_cost)
+	s.Require().InEpsilon(3.0, stats.UserCost, 0.0001)
 }
 
 func (s *UsageLogRepoSuite) TestDashboardAggregationConsistency() {
 	now := time.Now().UTC().Truncate(time.Second)
-	hour1 := now.Add(-90 * time.Minute).Truncate(time.Hour)
-	hour2 := now.Add(-30 * time.Minute).Truncate(time.Hour)
+	// 使用固定的时间偏移确保 hour1 和 hour2 在同一天且都在过去
+	// 选择当天 02:00 和 03:00 作为测试时间点（基于 now 的日期）
 	dayStart := truncateToDayUTC(now)
+	hour1 := dayStart.Add(2 * time.Hour) // 当天 02:00
+	hour2 := dayStart.Add(3 * time.Hour) // 当天 03:00
+	// 如果当前时间早于 hour2，则使用昨天的时间
+	if now.Before(hour2.Add(time.Hour)) {
+		dayStart = dayStart.Add(-24 * time.Hour)
+		hour1 = dayStart.Add(2 * time.Hour)
+		hour2 = dayStart.Add(3 * time.Hour)
+	}
 
 	user1 := mustCreateUser(s.T(), s.client, &service.User{Email: "agg-u1@test.com"})
 	user2 := mustCreateUser(s.T(), s.client, &service.User{Email: "agg-u2@test.com"})
@@ -473,7 +609,7 @@ func (s *UsageLogRepoSuite) TestDashboardAggregationConsistency() {
 
 	aggRepo := newDashboardAggregationRepositoryWithSQL(s.tx)
 	aggStart := hour1.Add(-5 * time.Minute)
-	aggEnd := now.Add(5 * time.Minute)
+	aggEnd := hour2.Add(time.Hour) // 确保覆盖 hour2 的所有数据
 	s.Require().NoError(aggRepo.AggregateRange(s.ctx, aggStart, aggEnd))
 
 	type hourlyRow struct {
@@ -568,7 +704,7 @@ func (s *UsageLogRepoSuite) TestGetBatchUserUsageStats() {
 	s.createUsageLog(user1, apiKey1, account, 10, 20, 0.5, time.Now())
 	s.createUsageLog(user2, apiKey2, account, 15, 25, 0.6, time.Now())
 
-	stats, err := s.repo.GetBatchUserUsageStats(s.ctx, []int64{user1.ID, user2.ID})
+	stats, err := s.repo.GetBatchUserUsageStats(s.ctx, []int64{user1.ID, user2.ID}, time.Time{}, time.Time{})
 	s.Require().NoError(err, "GetBatchUserUsageStats")
 	s.Require().Len(stats, 2)
 	s.Require().NotNil(stats[user1.ID])
@@ -576,7 +712,7 @@ func (s *UsageLogRepoSuite) TestGetBatchUserUsageStats() {
 }
 
 func (s *UsageLogRepoSuite) TestGetBatchUserUsageStats_Empty() {
-	stats, err := s.repo.GetBatchUserUsageStats(s.ctx, []int64{})
+	stats, err := s.repo.GetBatchUserUsageStats(s.ctx, []int64{}, time.Time{}, time.Time{})
 	s.Require().NoError(err)
 	s.Require().Empty(stats)
 }
@@ -592,13 +728,13 @@ func (s *UsageLogRepoSuite) TestGetBatchApiKeyUsageStats() {
 	s.createUsageLog(user, apiKey1, account, 10, 20, 0.5, time.Now())
 	s.createUsageLog(user, apiKey2, account, 15, 25, 0.6, time.Now())
 
-	stats, err := s.repo.GetBatchAPIKeyUsageStats(s.ctx, []int64{apiKey1.ID, apiKey2.ID})
+	stats, err := s.repo.GetBatchAPIKeyUsageStats(s.ctx, []int64{apiKey1.ID, apiKey2.ID}, time.Time{}, time.Time{})
 	s.Require().NoError(err, "GetBatchAPIKeyUsageStats")
 	s.Require().Len(stats, 2)
 }
 
 func (s *UsageLogRepoSuite) TestGetBatchApiKeyUsageStats_Empty() {
-	stats, err := s.repo.GetBatchAPIKeyUsageStats(s.ctx, []int64{})
+	stats, err := s.repo.GetBatchAPIKeyUsageStats(s.ctx, []int64{}, time.Time{}, time.Time{})
 	s.Require().NoError(err)
 	s.Require().Empty(stats)
 }
@@ -621,7 +757,7 @@ func (s *UsageLogRepoSuite) TestGetGlobalStats() {
 	s.Require().Equal(int64(45), stats.TotalOutputTokens)
 }
 
-func maxTime(a, b time.Time) time.Time {
+func testMaxTime(a, b time.Time) time.Time {
 	if a.After(b) {
 		return a
 	}
@@ -864,17 +1000,17 @@ func (s *UsageLogRepoSuite) TestGetUsageTrendWithFilters() {
 	endTime := base.Add(48 * time.Hour)
 
 	// Test with user filter
-	trend, err := s.repo.GetUsageTrendWithFilters(s.ctx, startTime, endTime, "day", user.ID, 0)
+	trend, err := s.repo.GetUsageTrendWithFilters(s.ctx, startTime, endTime, "day", user.ID, 0, 0, 0, "", nil, nil, nil)
 	s.Require().NoError(err, "GetUsageTrendWithFilters user filter")
 	s.Require().Len(trend, 2)
 
 	// Test with apiKey filter
-	trend, err = s.repo.GetUsageTrendWithFilters(s.ctx, startTime, endTime, "day", 0, apiKey.ID)
+	trend, err = s.repo.GetUsageTrendWithFilters(s.ctx, startTime, endTime, "day", 0, apiKey.ID, 0, 0, "", nil, nil, nil)
 	s.Require().NoError(err, "GetUsageTrendWithFilters apiKey filter")
 	s.Require().Len(trend, 2)
 
 	// Test with both filters
-	trend, err = s.repo.GetUsageTrendWithFilters(s.ctx, startTime, endTime, "day", user.ID, apiKey.ID)
+	trend, err = s.repo.GetUsageTrendWithFilters(s.ctx, startTime, endTime, "day", user.ID, apiKey.ID, 0, 0, "", nil, nil, nil)
 	s.Require().NoError(err, "GetUsageTrendWithFilters both filters")
 	s.Require().Len(trend, 2)
 }
@@ -891,7 +1027,7 @@ func (s *UsageLogRepoSuite) TestGetUsageTrendWithFilters_HourlyGranularity() {
 	startTime := base.Add(-1 * time.Hour)
 	endTime := base.Add(3 * time.Hour)
 
-	trend, err := s.repo.GetUsageTrendWithFilters(s.ctx, startTime, endTime, "hour", user.ID, 0)
+	trend, err := s.repo.GetUsageTrendWithFilters(s.ctx, startTime, endTime, "hour", user.ID, 0, 0, 0, "", nil, nil, nil)
 	s.Require().NoError(err, "GetUsageTrendWithFilters hourly")
 	s.Require().Len(trend, 2)
 }
@@ -937,17 +1073,17 @@ func (s *UsageLogRepoSuite) TestGetModelStatsWithFilters() {
 	endTime := base.Add(2 * time.Hour)
 
 	// Test with user filter
-	stats, err := s.repo.GetModelStatsWithFilters(s.ctx, startTime, endTime, user.ID, 0, 0)
+	stats, err := s.repo.GetModelStatsWithFilters(s.ctx, startTime, endTime, user.ID, 0, 0, 0, nil, nil, nil)
 	s.Require().NoError(err, "GetModelStatsWithFilters user filter")
 	s.Require().Len(stats, 2)
 
 	// Test with apiKey filter
-	stats, err = s.repo.GetModelStatsWithFilters(s.ctx, startTime, endTime, 0, apiKey.ID, 0)
+	stats, err = s.repo.GetModelStatsWithFilters(s.ctx, startTime, endTime, 0, apiKey.ID, 0, 0, nil, nil, nil)
 	s.Require().NoError(err, "GetModelStatsWithFilters apiKey filter")
 	s.Require().Len(stats, 2)
 
 	// Test with account filter
-	stats, err = s.repo.GetModelStatsWithFilters(s.ctx, startTime, endTime, 0, 0, account.ID)
+	stats, err = s.repo.GetModelStatsWithFilters(s.ctx, startTime, endTime, 0, 0, account.ID, 0, nil, nil, nil)
 	s.Require().NoError(err, "GetModelStatsWithFilters account filter")
 	s.Require().Len(stats, 2)
 }

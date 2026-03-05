@@ -6,6 +6,10 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
+import { useAdminSettingsStore } from '@/stores/adminSettings'
+import { useNavigationLoadingState } from '@/composables/useNavigationLoading'
+import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
+import { resolveDocumentTitle } from './title'
 
 /**
  * Route definitions with lazy loading
@@ -38,7 +42,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/auth/LoginView.vue'),
     meta: {
       requiresAuth: false,
-      title: 'Login'
+      title: 'Login',
+      titleKey: 'common.login'
     }
   },
   {
@@ -47,7 +52,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/auth/RegisterView.vue'),
     meta: {
       requiresAuth: false,
-      title: 'Register'
+      title: 'Register',
+      titleKey: 'auth.createAccount'
     }
   },
   {
@@ -75,6 +81,34 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: false,
       title: 'LinuxDo OAuth Callback'
+    }
+  },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/views/auth/ForgotPasswordView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Forgot Password',
+      titleKey: 'auth.forgotPasswordTitle'
+    }
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/auth/ResetPasswordView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Reset Password'
+    }
+  },
+  {
+    path: '/key-usage',
+    name: 'KeyUsage',
+    component: () => import('@/views/KeyUsageView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Key Usage',
     }
   },
 
@@ -155,6 +189,41 @@ const routes: RouteRecordRaw[] = [
       descriptionKey: 'userSubscriptions.description'
     }
   },
+  {
+    path: '/purchase',
+    name: 'PurchaseSubscription',
+    component: () => import('@/views/user/PurchaseSubscriptionView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Purchase Subscription',
+      titleKey: 'purchase.title',
+      descriptionKey: 'purchase.description'
+    }
+  },
+  {
+    path: '/sora',
+    name: 'Sora',
+    component: () => import('@/views/user/SoraView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Sora',
+      titleKey: 'sora.title',
+      descriptionKey: 'sora.description'
+    }
+  },
+  {
+    path: '/custom/:id',
+    name: 'CustomPage',
+    component: () => import('@/views/user/CustomPageView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Custom Page',
+      titleKey: 'customPage.title',
+    }
+  },
 
   // ==================== Admin Routes ====================
   {
@@ -171,6 +240,18 @@ const routes: RouteRecordRaw[] = [
       title: 'Admin Dashboard',
       titleKey: 'admin.dashboard.title',
       descriptionKey: 'admin.dashboard.description'
+    }
+  },
+  {
+    path: '/admin/ops',
+    name: 'AdminOps',
+    component: () => import('@/views/admin/ops/OpsDashboard.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Ops Monitoring',
+      titleKey: 'admin.ops.title',
+      descriptionKey: 'admin.ops.description'
     }
   },
   {
@@ -222,6 +303,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/announcements',
+    name: 'AdminAnnouncements',
+    component: () => import('@/views/admin/AnnouncementsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Announcements',
+      titleKey: 'admin.announcements.title',
+      descriptionKey: 'admin.announcements.description'
+    }
+  },
+  {
     path: '/admin/proxies',
     name: 'AdminProxies',
     component: () => import('@/views/admin/ProxiesView.vue'),
@@ -255,6 +348,18 @@ const routes: RouteRecordRaw[] = [
       title: 'Promo Code Management',
       titleKey: 'admin.promo.title',
       descriptionKey: 'admin.promo.description'
+    }
+  },
+  {
+    path: '/admin/data-management',
+    name: 'AdminDataManagement',
+    component: () => import('@/views/admin/DataManagementView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Data Management',
+      titleKey: 'admin.dataManagement.title',
+      descriptionKey: 'admin.dataManagement.description'
     }
   },
   {
@@ -314,7 +419,15 @@ const router = createRouter({
  */
 let authInitialized = false
 
+// 初始化导航加载状态和预加载
+const navigationLoading = useNavigationLoadingState()
+// 延迟初始化预加载，传入 router 实例
+let routePrefetch: ReturnType<typeof useRoutePrefetch> | null = null
+
 router.beforeEach((to, _from, next) => {
+  // 开始导航加载状态
+  navigationLoading.startNavigation()
+
   const authStore = useAuthStore()
 
   // Restore auth state from localStorage on first navigation (page refresh)
@@ -325,11 +438,21 @@ router.beforeEach((to, _from, next) => {
 
   // Set page title
   const appStore = useAppStore()
-  const siteName = appStore.siteName || 'Sub2API'
-  if (to.meta.title) {
-    document.title = `${to.meta.title} - ${siteName}`
+  // For custom pages, use menu item label as document title
+  if (to.name === 'CustomPage') {
+    const id = to.params.id as string
+    const publicItems = appStore.cachedPublicSettings?.custom_menu_items ?? []
+    const adminSettingsStore = useAdminSettingsStore()
+    const menuItem = publicItems.find((item) => item.id === id)
+      ?? (authStore.isAdmin ? adminSettingsStore.customMenuItems.find((item) => item.id === id) : undefined)
+    if (menuItem?.label) {
+      const siteName = appStore.siteName || 'Sub2API'
+      document.title = `${menuItem.label} - ${siteName}`
+    } else {
+      document.title = resolveDocumentTitle(to.meta.title, appStore.siteName, to.meta.titleKey as string)
+    }
   } else {
-    document.title = siteName
+    document.title = resolveDocumentTitle(to.meta.title, appStore.siteName, to.meta.titleKey as string)
   }
 
   // Check if route requires authentication
@@ -387,10 +510,49 @@ router.beforeEach((to, _from, next) => {
 })
 
 /**
+ * Navigation guard: End loading and trigger prefetch
+ */
+router.afterEach((to) => {
+  // 结束导航加载状态
+  navigationLoading.endNavigation()
+
+  // 懒初始化预加载（首次导航时创建，传入 router 实例）
+  if (!routePrefetch) {
+    routePrefetch = useRoutePrefetch(router)
+  }
+  // 触发路由预加载（在浏览器空闲时执行）
+  routePrefetch.triggerPrefetch(to)
+})
+
+/**
  * Navigation guard: Error handling
+ * Handles dynamic import failures caused by deployment updates
  */
 router.onError((error) => {
   console.error('Router error:', error)
+
+  // Check if this is a dynamic import failure (chunk loading error)
+  const isChunkLoadError =
+    error.message?.includes('Failed to fetch dynamically imported module') ||
+    error.message?.includes('Loading chunk') ||
+    error.message?.includes('Loading CSS chunk') ||
+    error.name === 'ChunkLoadError'
+
+  if (isChunkLoadError) {
+    // Avoid infinite reload loop by checking sessionStorage
+    const reloadKey = 'chunk_reload_attempted'
+    const lastReload = sessionStorage.getItem(reloadKey)
+    const now = Date.now()
+
+    // Allow reload if never attempted or more than 10 seconds ago
+    if (!lastReload || now - parseInt(lastReload) > 10000) {
+      sessionStorage.setItem(reloadKey, now.toString())
+      console.warn('Chunk load error detected, reloading page to fetch latest version...')
+      window.location.reload()
+    } else {
+      console.error('Chunk load error persists after reload. Please clear browser cache.')
+    }
+  }
 })
 
 export default router

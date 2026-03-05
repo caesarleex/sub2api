@@ -267,6 +267,20 @@ func (_c *UsageLogCreate) SetNillableRateMultiplier(v *float64) *UsageLogCreate 
 	return _c
 }
 
+// SetAccountRateMultiplier sets the "account_rate_multiplier" field.
+func (_c *UsageLogCreate) SetAccountRateMultiplier(v float64) *UsageLogCreate {
+	_c.mutation.SetAccountRateMultiplier(v)
+	return _c
+}
+
+// SetNillableAccountRateMultiplier sets the "account_rate_multiplier" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableAccountRateMultiplier(v *float64) *UsageLogCreate {
+	if v != nil {
+		_c.SetAccountRateMultiplier(*v)
+	}
+	return _c
+}
+
 // SetBillingType sets the "billing_type" field.
 func (_c *UsageLogCreate) SetBillingType(v int8) *UsageLogCreate {
 	_c.mutation.SetBillingType(v)
@@ -375,6 +389,34 @@ func (_c *UsageLogCreate) SetImageSize(v string) *UsageLogCreate {
 func (_c *UsageLogCreate) SetNillableImageSize(v *string) *UsageLogCreate {
 	if v != nil {
 		_c.SetImageSize(*v)
+	}
+	return _c
+}
+
+// SetMediaType sets the "media_type" field.
+func (_c *UsageLogCreate) SetMediaType(v string) *UsageLogCreate {
+	_c.mutation.SetMediaType(v)
+	return _c
+}
+
+// SetNillableMediaType sets the "media_type" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableMediaType(v *string) *UsageLogCreate {
+	if v != nil {
+		_c.SetMediaType(*v)
+	}
+	return _c
+}
+
+// SetCacheTTLOverridden sets the "cache_ttl_overridden" field.
+func (_c *UsageLogCreate) SetCacheTTLOverridden(v bool) *UsageLogCreate {
+	_c.mutation.SetCacheTTLOverridden(v)
+	return _c
+}
+
+// SetNillableCacheTTLOverridden sets the "cache_ttl_overridden" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableCacheTTLOverridden(v *bool) *UsageLogCreate {
+	if v != nil {
+		_c.SetCacheTTLOverridden(*v)
 	}
 	return _c
 }
@@ -517,6 +559,10 @@ func (_c *UsageLogCreate) defaults() {
 		v := usagelog.DefaultImageCount
 		_c.mutation.SetImageCount(v)
 	}
+	if _, ok := _c.mutation.CacheTTLOverridden(); !ok {
+		v := usagelog.DefaultCacheTTLOverridden
+		_c.mutation.SetCacheTTLOverridden(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := usagelog.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -612,6 +658,14 @@ func (_c *UsageLogCreate) check() error {
 		if err := usagelog.ImageSizeValidator(v); err != nil {
 			return &ValidationError{Name: "image_size", err: fmt.Errorf(`ent: validator failed for field "UsageLog.image_size": %w`, err)}
 		}
+	}
+	if v, ok := _c.mutation.MediaType(); ok {
+		if err := usagelog.MediaTypeValidator(v); err != nil {
+			return &ValidationError{Name: "media_type", err: fmt.Errorf(`ent: validator failed for field "UsageLog.media_type": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.CacheTTLOverridden(); !ok {
+		return &ValidationError{Name: "cache_ttl_overridden", err: errors.New(`ent: missing required field "UsageLog.cache_ttl_overridden"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "UsageLog.created_at"`)}
@@ -712,6 +766,10 @@ func (_c *UsageLogCreate) createSpec() (*UsageLog, *sqlgraph.CreateSpec) {
 		_spec.SetField(usagelog.FieldRateMultiplier, field.TypeFloat64, value)
 		_node.RateMultiplier = value
 	}
+	if value, ok := _c.mutation.AccountRateMultiplier(); ok {
+		_spec.SetField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64, value)
+		_node.AccountRateMultiplier = &value
+	}
 	if value, ok := _c.mutation.BillingType(); ok {
 		_spec.SetField(usagelog.FieldBillingType, field.TypeInt8, value)
 		_node.BillingType = value
@@ -743,6 +801,14 @@ func (_c *UsageLogCreate) createSpec() (*UsageLog, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ImageSize(); ok {
 		_spec.SetField(usagelog.FieldImageSize, field.TypeString, value)
 		_node.ImageSize = &value
+	}
+	if value, ok := _c.mutation.MediaType(); ok {
+		_spec.SetField(usagelog.FieldMediaType, field.TypeString, value)
+		_node.MediaType = &value
+	}
+	if value, ok := _c.mutation.CacheTTLOverridden(); ok {
+		_spec.SetField(usagelog.FieldCacheTTLOverridden, field.TypeBool, value)
+		_node.CacheTTLOverridden = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(usagelog.FieldCreatedAt, field.TypeTime, value)
@@ -1215,6 +1281,30 @@ func (u *UsageLogUpsert) AddRateMultiplier(v float64) *UsageLogUpsert {
 	return u
 }
 
+// SetAccountRateMultiplier sets the "account_rate_multiplier" field.
+func (u *UsageLogUpsert) SetAccountRateMultiplier(v float64) *UsageLogUpsert {
+	u.Set(usagelog.FieldAccountRateMultiplier, v)
+	return u
+}
+
+// UpdateAccountRateMultiplier sets the "account_rate_multiplier" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateAccountRateMultiplier() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldAccountRateMultiplier)
+	return u
+}
+
+// AddAccountRateMultiplier adds v to the "account_rate_multiplier" field.
+func (u *UsageLogUpsert) AddAccountRateMultiplier(v float64) *UsageLogUpsert {
+	u.Add(usagelog.FieldAccountRateMultiplier, v)
+	return u
+}
+
+// ClearAccountRateMultiplier clears the value of the "account_rate_multiplier" field.
+func (u *UsageLogUpsert) ClearAccountRateMultiplier() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldAccountRateMultiplier)
+	return u
+}
+
 // SetBillingType sets the "billing_type" field.
 func (u *UsageLogUpsert) SetBillingType(v int8) *UsageLogUpsert {
 	u.Set(usagelog.FieldBillingType, v)
@@ -1362,6 +1452,36 @@ func (u *UsageLogUpsert) UpdateImageSize() *UsageLogUpsert {
 // ClearImageSize clears the value of the "image_size" field.
 func (u *UsageLogUpsert) ClearImageSize() *UsageLogUpsert {
 	u.SetNull(usagelog.FieldImageSize)
+	return u
+}
+
+// SetMediaType sets the "media_type" field.
+func (u *UsageLogUpsert) SetMediaType(v string) *UsageLogUpsert {
+	u.Set(usagelog.FieldMediaType, v)
+	return u
+}
+
+// UpdateMediaType sets the "media_type" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateMediaType() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldMediaType)
+	return u
+}
+
+// ClearMediaType clears the value of the "media_type" field.
+func (u *UsageLogUpsert) ClearMediaType() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldMediaType)
+	return u
+}
+
+// SetCacheTTLOverridden sets the "cache_ttl_overridden" field.
+func (u *UsageLogUpsert) SetCacheTTLOverridden(v bool) *UsageLogUpsert {
+	u.Set(usagelog.FieldCacheTTLOverridden, v)
+	return u
+}
+
+// UpdateCacheTTLOverridden sets the "cache_ttl_overridden" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateCacheTTLOverridden() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldCacheTTLOverridden)
 	return u
 }
 
@@ -1795,6 +1915,34 @@ func (u *UsageLogUpsertOne) UpdateRateMultiplier() *UsageLogUpsertOne {
 	})
 }
 
+// SetAccountRateMultiplier sets the "account_rate_multiplier" field.
+func (u *UsageLogUpsertOne) SetAccountRateMultiplier(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetAccountRateMultiplier(v)
+	})
+}
+
+// AddAccountRateMultiplier adds v to the "account_rate_multiplier" field.
+func (u *UsageLogUpsertOne) AddAccountRateMultiplier(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddAccountRateMultiplier(v)
+	})
+}
+
+// UpdateAccountRateMultiplier sets the "account_rate_multiplier" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateAccountRateMultiplier() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateAccountRateMultiplier()
+	})
+}
+
+// ClearAccountRateMultiplier clears the value of the "account_rate_multiplier" field.
+func (u *UsageLogUpsertOne) ClearAccountRateMultiplier() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearAccountRateMultiplier()
+	})
+}
+
 // SetBillingType sets the "billing_type" field.
 func (u *UsageLogUpsertOne) SetBillingType(v int8) *UsageLogUpsertOne {
 	return u.Update(func(s *UsageLogUpsert) {
@@ -1967,6 +2115,41 @@ func (u *UsageLogUpsertOne) UpdateImageSize() *UsageLogUpsertOne {
 func (u *UsageLogUpsertOne) ClearImageSize() *UsageLogUpsertOne {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearImageSize()
+	})
+}
+
+// SetMediaType sets the "media_type" field.
+func (u *UsageLogUpsertOne) SetMediaType(v string) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetMediaType(v)
+	})
+}
+
+// UpdateMediaType sets the "media_type" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateMediaType() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateMediaType()
+	})
+}
+
+// ClearMediaType clears the value of the "media_type" field.
+func (u *UsageLogUpsertOne) ClearMediaType() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearMediaType()
+	})
+}
+
+// SetCacheTTLOverridden sets the "cache_ttl_overridden" field.
+func (u *UsageLogUpsertOne) SetCacheTTLOverridden(v bool) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetCacheTTLOverridden(v)
+	})
+}
+
+// UpdateCacheTTLOverridden sets the "cache_ttl_overridden" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateCacheTTLOverridden() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateCacheTTLOverridden()
 	})
 }
 
@@ -2566,6 +2749,34 @@ func (u *UsageLogUpsertBulk) UpdateRateMultiplier() *UsageLogUpsertBulk {
 	})
 }
 
+// SetAccountRateMultiplier sets the "account_rate_multiplier" field.
+func (u *UsageLogUpsertBulk) SetAccountRateMultiplier(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetAccountRateMultiplier(v)
+	})
+}
+
+// AddAccountRateMultiplier adds v to the "account_rate_multiplier" field.
+func (u *UsageLogUpsertBulk) AddAccountRateMultiplier(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddAccountRateMultiplier(v)
+	})
+}
+
+// UpdateAccountRateMultiplier sets the "account_rate_multiplier" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateAccountRateMultiplier() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateAccountRateMultiplier()
+	})
+}
+
+// ClearAccountRateMultiplier clears the value of the "account_rate_multiplier" field.
+func (u *UsageLogUpsertBulk) ClearAccountRateMultiplier() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearAccountRateMultiplier()
+	})
+}
+
 // SetBillingType sets the "billing_type" field.
 func (u *UsageLogUpsertBulk) SetBillingType(v int8) *UsageLogUpsertBulk {
 	return u.Update(func(s *UsageLogUpsert) {
@@ -2738,6 +2949,41 @@ func (u *UsageLogUpsertBulk) UpdateImageSize() *UsageLogUpsertBulk {
 func (u *UsageLogUpsertBulk) ClearImageSize() *UsageLogUpsertBulk {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearImageSize()
+	})
+}
+
+// SetMediaType sets the "media_type" field.
+func (u *UsageLogUpsertBulk) SetMediaType(v string) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetMediaType(v)
+	})
+}
+
+// UpdateMediaType sets the "media_type" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateMediaType() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateMediaType()
+	})
+}
+
+// ClearMediaType clears the value of the "media_type" field.
+func (u *UsageLogUpsertBulk) ClearMediaType() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearMediaType()
+	})
+}
+
+// SetCacheTTLOverridden sets the "cache_ttl_overridden" field.
+func (u *UsageLogUpsertBulk) SetCacheTTLOverridden(v bool) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetCacheTTLOverridden(v)
+	})
+}
+
+// UpdateCacheTTLOverridden sets the "cache_ttl_overridden" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateCacheTTLOverridden() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateCacheTTLOverridden()
 	})
 }
 

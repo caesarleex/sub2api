@@ -3,11 +3,11 @@
     <TablePageLayout>
       <!-- Single Row: Search, Filters, and Actions -->
       <template #filters>
-        <div class="flex w-full flex-wrap-reverse items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-3">
           <!-- Left: Search + Active Filters -->
-          <div class="flex min-w-[280px] flex-1 flex-wrap content-start items-center gap-3">
+          <div class="flex flex-1 flex-wrap items-center gap-3">
             <!-- Search Box -->
-            <div class="relative w-full sm:w-64">
+            <div class="relative w-full md:w-64">
               <Icon
                 name="search"
                 size="md"
@@ -100,109 +100,119 @@
           </div>
 
           <!-- Right: Actions and Settings -->
-          <div class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-3">
-            <!-- Refresh Button -->
-            <button
-              @click="loadUsers"
-              :disabled="loading"
-              class="btn btn-secondary"
-              :title="t('common.refresh')"
-            >
-              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-            </button>
-            <!-- Filter Settings Dropdown -->
-            <div class="relative" ref="filterDropdownRef">
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            <!-- Mobile: Secondary buttons (icon only) -->
+            <div class="flex items-center gap-2 md:contents">
+              <!-- Refresh Button -->
               <button
-                @click="showFilterDropdown = !showFilterDropdown"
-                class="btn btn-secondary"
+                @click="loadUsers"
+                :disabled="loading"
+                class="btn btn-secondary px-2 md:px-3"
+                :title="t('common.refresh')"
               >
-                <Icon name="filter" size="sm" class="mr-1.5" />
-                {{ t('admin.users.filterSettings') }}
+                <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
               </button>
-              <!-- Dropdown menu -->
-              <div
-                v-if="showFilterDropdown"
-                class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
-              >
-                <!-- Built-in filters -->
+              <!-- Filter Settings Dropdown -->
+              <div class="relative" ref="filterDropdownRef">
                 <button
-                  v-for="filter in builtInFilters"
-                  :key="filter.key"
-                  @click="toggleBuiltInFilter(filter.key)"
-                  class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                  @click="showFilterDropdown = !showFilterDropdown"
+                  class="btn btn-secondary px-2 md:px-3"
+                  :title="t('admin.users.filterSettings')"
                 >
-                  <span>{{ filter.name }}</span>
-                  <Icon
-                    v-if="visibleFilters.has(filter.key)"
-                    name="check"
-                    size="sm"
-                    class="text-primary-500"
-                    :stroke-width="2"
-                  />
+                  <Icon name="filter" size="sm" class="md:mr-1.5" />
+                  <span class="hidden md:inline">{{ t('admin.users.filterSettings') }}</span>
                 </button>
-                <!-- Divider if custom attributes exist -->
+                <!-- Dropdown menu -->
                 <div
-                  v-if="filterableAttributes.length > 0"
-                  class="my-1 border-t border-gray-100 dark:border-dark-700"
-                ></div>
-                <!-- Custom attribute filters -->
-                <button
-                  v-for="attr in filterableAttributes"
-                  :key="attr.id"
-                  @click="toggleAttributeFilter(attr)"
-                  class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                  v-if="showFilterDropdown"
+                  class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
                 >
-                  <span>{{ attr.name }}</span>
-                  <Icon
-                    v-if="visibleFilters.has(`attr_${attr.id}`)"
-                    name="check"
-                    size="sm"
-                    class="text-primary-500"
-                    :stroke-width="2"
-                  />
-                </button>
+                  <!-- Built-in filters -->
+                  <button
+                    v-for="filter in builtInFilters"
+                    :key="filter.key"
+                    @click="toggleBuiltInFilter(filter.key)"
+                    class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                  >
+                    <span>{{ filter.name }}</span>
+                    <Icon
+                      v-if="visibleFilters.has(filter.key)"
+                      name="check"
+                      size="sm"
+                      class="text-primary-500"
+                      :stroke-width="2"
+                    />
+                  </button>
+                  <!-- Divider if custom attributes exist -->
+                  <div
+                    v-if="filterableAttributes.length > 0"
+                    class="my-1 border-t border-gray-100 dark:border-dark-700"
+                  ></div>
+                  <!-- Custom attribute filters -->
+                  <button
+                    v-for="attr in filterableAttributes"
+                    :key="attr.id"
+                    @click="toggleAttributeFilter(attr)"
+                    class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                  >
+                    <span>{{ attr.name }}</span>
+                    <Icon
+                      v-if="visibleFilters.has(`attr_${attr.id}`)"
+                      name="check"
+                      size="sm"
+                      class="text-primary-500"
+                      :stroke-width="2"
+                    />
+                  </button>
+                </div>
               </div>
-            </div>
-            <!-- Column Settings Dropdown -->
-            <div class="relative" ref="columnDropdownRef">
+              <!-- Column Settings Dropdown -->
+              <div class="relative" ref="columnDropdownRef">
+                <button
+                  @click="showColumnDropdown = !showColumnDropdown"
+                  class="btn btn-secondary px-2 md:px-3"
+                  :title="t('admin.users.columnSettings')"
+                >
+                  <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
+                  </svg>
+                  <span class="hidden md:inline">{{ t('admin.users.columnSettings') }}</span>
+                </button>
+                <!-- Dropdown menu -->
+                <div
+                  v-if="showColumnDropdown"
+                  class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
+                >
+                  <button
+                    v-for="col in toggleableColumns"
+                    :key="col.key"
+                    @click="toggleColumn(col.key)"
+                    class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                  >
+                    <span>{{ col.label }}</span>
+                    <Icon
+                      v-if="isColumnVisible(col.key)"
+                      name="check"
+                      size="sm"
+                      class="text-primary-500"
+                      :stroke-width="2"
+                    />
+                  </button>
+                </div>
+              </div>
+              <!-- Attributes Config Button -->
               <button
-                @click="showColumnDropdown = !showColumnDropdown"
-                class="btn btn-secondary"
+                @click="showAttributesModal = true"
+                class="btn btn-secondary px-2 md:px-3"
+                :title="t('admin.users.attributes.configButton')"
               >
-                <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
-                </svg>
-                {{ t('admin.users.columnSettings') }}
+                <Icon name="cog" size="sm" class="md:mr-1.5" />
+                <span class="hidden md:inline">{{ t('admin.users.attributes.configButton') }}</span>
               </button>
-              <!-- Dropdown menu -->
-              <div
-                v-if="showColumnDropdown"
-                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
-              >
-                <button
-                  v-for="col in toggleableColumns"
-                  :key="col.key"
-                  @click="toggleColumn(col.key)"
-                  class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
-                >
-                  <span>{{ col.label }}</span>
-                  <Icon
-                    v-if="isColumnVisible(col.key)"
-                    name="check"
-                    size="sm"
-                    class="text-primary-500"
-                    :stroke-width="2"
-                  />
-                </button>
-              </div>
             </div>
-            <!-- Attributes Config Button -->
-            <button @click="showAttributesModal = true" class="btn btn-secondary">
-              <Icon name="cog" size="sm" class="mr-1.5" />
-              {{ t('admin.users.attributes.configButton') }}
-            </button>
-            <!-- Create User Button -->
-            <button @click="showCreateModal = true" class="btn btn-primary">
+
+            <!-- Create User Button (full width on mobile, auto width on desktop) -->
+            <button @click="showCreateModal = true" class="btn btn-primary flex-1 md:flex-initial">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.users.createUser') }}
             </button>
@@ -290,8 +300,29 @@
             </span>
           </template>
 
-          <template #cell-balance="{ value }">
-            <span class="font-medium text-gray-900 dark:text-white">${{ value.toFixed(2) }}</span>
+          <template #cell-balance="{ value, row }">
+            <div class="flex items-center gap-2">
+              <div class="group relative">
+                <button
+                  class="font-medium text-gray-900 underline decoration-dashed decoration-gray-300 underline-offset-4 transition-colors hover:text-primary-600 dark:text-white dark:decoration-dark-500 dark:hover:text-primary-400"
+                  @click="handleBalanceHistory(row)"
+                >
+                  ${{ value.toFixed(2) }}
+                </button>
+                <!-- Instant tooltip -->
+                <div class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 dark:bg-dark-600">
+                  {{ t('admin.users.balanceHistoryTip') }}
+                  <div class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-dark-600"></div>
+                </div>
+              </div>
+              <button
+                @click.stop="handleDeposit(row)"
+                class="rounded px-2 py-0.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                :title="t('admin.users.deposit')"
+              >
+                {{ t('admin.users.deposit') }}
+              </button>
+            </div>
           </template>
 
           <template #cell-usage="{ row }">
@@ -311,8 +342,11 @@
             </div>
           </template>
 
-          <template #cell-concurrency="{ value }">
-            <span class="text-sm text-gray-700 dark:text-gray-300">{{ value }}</span>
+          <template #cell-concurrency="{ row }">
+            <UserConcurrencyCell
+              :current="row.current_concurrency ?? 0"
+              :max="row.concurrency"
+            />
           </template>
 
           <template #cell-status="{ value }">
@@ -362,8 +396,7 @@
 
               <!-- More Actions Menu Trigger -->
               <button
-                :ref="(el) => setActionButtonRef(row.id, el)"
-                @click="openActionMenu(row)"
+                @click="openActionMenu(row, $event)"
                 class="action-menu-trigger flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-dark-700 dark:hover:text-white"
                 :class="{ 'bg-gray-100 text-gray-900 dark:bg-dark-700 dark:text-white': activeMenuId === row.id }"
               >
@@ -447,6 +480,15 @@
                 {{ t('admin.users.withdraw') }}
               </button>
 
+              <!-- Balance History -->
+              <button
+                @click="handleBalanceHistory(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+              >
+                <Icon name="dollar" size="sm" class="text-gray-400" :stroke-width="2" />
+                {{ t('admin.users.balanceHistory') }}
+              </button>
+
               <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
 
               <!-- Delete (not for admin) -->
@@ -470,12 +512,13 @@
     <UserApiKeysModal :show="showApiKeysModal" :user="viewingUser" @close="closeApiKeysModal" />
     <UserAllowedGroupsModal :show="showAllowedGroupsModal" :user="allowedGroupsUser" @close="closeAllowedGroupsModal" @success="loadUsers" />
     <UserBalanceModal :show="showBalanceModal" :user="balanceUser" :operation="balanceOperation" @close="closeBalanceModal" @success="loadUsers" />
+    <UserBalanceHistoryModal :show="showBalanceHistoryModal" :user="balanceHistoryUser" @close="closeBalanceHistoryModal" @deposit="handleDepositFromHistory" @withdraw="handleWithdrawFromHistory" />
     <UserAttributesConfigModal :show="showAttributesModal" @close="handleAttributesModalClose" />
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/format'
@@ -483,7 +526,7 @@ import Icon from '@/components/icons/Icon.vue'
 
 const { t } = useI18n()
 import { adminAPI } from '@/api/admin'
-import type { User, UserAttributeDefinition } from '@/types'
+import type { AdminUser, UserAttributeDefinition } from '@/types'
 import type { BatchUserUsageStats } from '@/api/admin/dashboard'
 import type { Column } from '@/components/common/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
@@ -495,11 +538,13 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
 import Select from '@/components/common/Select.vue'
 import UserAttributesConfigModal from '@/components/user/UserAttributesConfigModal.vue'
+import UserConcurrencyCell from '@/components/user/UserConcurrencyCell.vue'
 import UserCreateModal from '@/components/admin/user/UserCreateModal.vue'
 import UserEditModal from '@/components/admin/user/UserEditModal.vue'
 import UserApiKeysModal from '@/components/admin/user/UserApiKeysModal.vue'
 import UserAllowedGroupsModal from '@/components/admin/user/UserAllowedGroupsModal.vue'
 import UserBalanceModal from '@/components/admin/user/UserBalanceModal.vue'
+import UserBalanceHistoryModal from '@/components/admin/user/UserBalanceHistoryModal.vue'
 
 const appStore = useAppStore()
 
@@ -610,16 +655,28 @@ const saveColumnsToStorage = () => {
 
 // Toggle column visibility
 const toggleColumn = (key: string) => {
+  const wasHidden = hiddenColumns.has(key)
   if (hiddenColumns.has(key)) {
     hiddenColumns.delete(key)
   } else {
     hiddenColumns.add(key)
   }
   saveColumnsToStorage()
+  if (wasHidden && (key === 'usage' || key.startsWith('attr_'))) {
+    refreshCurrentPageSecondaryData()
+  }
+  if (key === 'subscriptions') {
+    loadUsers()
+  }
 }
 
 // Check if column is visible (not in hidden set)
 const isColumnVisible = (key: string) => !hiddenColumns.has(key)
+const hasVisibleUsageColumn = computed(() => !hiddenColumns.has('usage'))
+const hasVisibleSubscriptionsColumn = computed(() => !hiddenColumns.has('subscriptions'))
+const hasVisibleAttributeColumns = computed(() =>
+  attributeDefinitions.value.some((def) => def.enabled && !hiddenColumns.has(`attr_${def.id}`))
+)
 
 // Filtered columns based on visibility
 const columns = computed<Column[]>(() =>
@@ -628,7 +685,7 @@ const columns = computed<Column[]>(() =>
   )
 )
 
-const users = ref<User[]>([])
+const users = ref<AdminUser[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 
@@ -727,50 +784,118 @@ const showEditModal = ref(false)
 const showDeleteDialog = ref(false)
 const showApiKeysModal = ref(false)
 const showAttributesModal = ref(false)
-const editingUser = ref<User | null>(null)
-const deletingUser = ref<User | null>(null)
-const viewingUser = ref<User | null>(null)
+const editingUser = ref<AdminUser | null>(null)
+const deletingUser = ref<AdminUser | null>(null)
+const viewingUser = ref<AdminUser | null>(null)
 let abortController: AbortController | null = null
+let secondaryDataSeq = 0
+
+const loadUsersSecondaryData = async (
+  userIds: number[],
+  signal?: AbortSignal,
+  expectedSeq?: number
+) => {
+  if (userIds.length === 0) return
+
+  const tasks: Promise<void>[] = []
+
+  if (hasVisibleUsageColumn.value) {
+    tasks.push(
+      (async () => {
+        try {
+          const usageResponse = await adminAPI.dashboard.getBatchUsersUsage(userIds)
+          if (signal?.aborted) return
+          if (typeof expectedSeq === 'number' && expectedSeq !== secondaryDataSeq) return
+          usageStats.value = usageResponse.stats
+        } catch (e) {
+          if (signal?.aborted) return
+          console.error('Failed to load usage stats:', e)
+        }
+      })()
+    )
+  }
+
+  if (attributeDefinitions.value.length > 0 && hasVisibleAttributeColumns.value) {
+    tasks.push(
+      (async () => {
+        try {
+          const attrResponse = await adminAPI.userAttributes.getBatchUserAttributes(userIds)
+          if (signal?.aborted) return
+          if (typeof expectedSeq === 'number' && expectedSeq !== secondaryDataSeq) return
+          userAttributeValues.value = attrResponse.attributes
+        } catch (e) {
+          if (signal?.aborted) return
+          console.error('Failed to load user attribute values:', e)
+        }
+      })()
+    )
+  }
+
+  if (tasks.length > 0) {
+    await Promise.allSettled(tasks)
+  }
+}
+
+const refreshCurrentPageSecondaryData = () => {
+  const userIds = users.value.map((u) => u.id)
+  if (userIds.length === 0) return
+  const seq = ++secondaryDataSeq
+  void loadUsersSecondaryData(userIds, undefined, seq)
+}
 
 // Action Menu State
 const activeMenuId = ref<number | null>(null)
 const menuPosition = ref<{ top: number; left: number } | null>(null)
-const actionButtonRefs = ref<Map<number, HTMLElement>>(new Map())
 
-const setActionButtonRef = (userId: number, el: Element | ComponentPublicInstance | null) => {
-  if (el instanceof HTMLElement) {
-    actionButtonRefs.value.set(userId, el)
-  } else {
-    actionButtonRefs.value.delete(userId)
-  }
-}
-
-const openActionMenu = (user: User) => {
+const openActionMenu = (user: AdminUser, e: MouseEvent) => {
   if (activeMenuId.value === user.id) {
     closeActionMenu()
   } else {
-    const buttonEl = actionButtonRefs.value.get(user.id)
-    if (buttonEl) {
-      const rect = buttonEl.getBoundingClientRect()
-      const menuWidth = 192
-      const menuHeight = 240
-      const padding = 8
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
-      const left = Math.min(
-        Math.max(rect.right - menuWidth, padding),
-        Math.max(viewportWidth - menuWidth - padding, padding)
-      )
-      let top = rect.bottom + 4
+    const target = e.currentTarget as HTMLElement
+    if (!target) {
+      closeActionMenu()
+      return
+    }
+
+    const rect = target.getBoundingClientRect()
+    const menuWidth = 200
+    const menuHeight = 240
+    const padding = 8
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    let left, top
+
+    if (viewportWidth < 768) {
+      // 居中显示,水平位置
+      left = Math.max(padding, Math.min(
+        rect.left + rect.width / 2 - menuWidth / 2,
+        viewportWidth - menuWidth - padding
+      ))
+
+      // 优先显示在按钮下方
+      top = rect.bottom + 4
+
+      // 如果下方空间不够,显示在上方
       if (top + menuHeight > viewportHeight - padding) {
-        top = Math.max(rect.top - menuHeight - 4, padding)
+        top = rect.top - menuHeight - 4
+        // 如果上方也不够,就贴在视口顶部
+        if (top < padding) {
+          top = padding
+        }
       }
-      // Position menu near the trigger, clamped to viewport
-      menuPosition.value = {
-        top,
-        left
+    } else {
+      left = Math.max(padding, Math.min(
+        e.clientX - menuWidth,
+        viewportWidth - menuWidth - padding
+      ))
+      top = e.clientY
+      if (top + menuHeight > viewportHeight - padding) {
+        top = viewportHeight - menuHeight - padding
       }
     }
+
+    menuPosition.value = { top, left }
     activeMenuId.value = user.id
   }
 }
@@ -798,12 +923,16 @@ const handleClickOutside = (event: MouseEvent) => {
 
 // Allowed groups modal state
 const showAllowedGroupsModal = ref(false)
-const allowedGroupsUser = ref<User | null>(null)
+const allowedGroupsUser = ref<AdminUser | null>(null)
 
 // Balance (Deposit/Withdraw) modal state
 const showBalanceModal = ref(false)
-const balanceUser = ref<User | null>(null)
+const balanceUser = ref<AdminUser | null>(null)
 const balanceOperation = ref<'add' | 'subtract'>('add')
+
+// Balance History modal state
+const showBalanceHistoryModal = ref(false)
+const balanceHistoryUser = ref<AdminUser | null>(null)
 
 // 计算剩余天数
 const getDaysRemaining = (expiresAt: string): number => {
@@ -850,7 +979,8 @@ const loadUsers = async () => {
         role: filters.role as any,
         status: filters.status as any,
         search: searchQuery.value || undefined,
-        attributes: Object.keys(attrFilters).length > 0 ? attrFilters : undefined
+        attributes: Object.keys(attrFilters).length > 0 ? attrFilters : undefined,
+        include_subscriptions: hasVisibleSubscriptionsColumn.value
       },
       { signal }
     )
@@ -860,38 +990,17 @@ const loadUsers = async () => {
     users.value = response.items
     pagination.total = response.total
     pagination.pages = response.pages
+    usageStats.value = {}
+    userAttributeValues.value = {}
 
-    // Load usage stats and attribute values for all users in the list
+    // Defer heavy secondary data so table can render first.
     if (response.items.length > 0) {
       const userIds = response.items.map((u) => u.id)
-      // Load usage stats
-      try {
-        const usageResponse = await adminAPI.dashboard.getBatchUsersUsage(userIds)
-        if (signal.aborted) {
-          return
-        }
-        usageStats.value = usageResponse.stats
-      } catch (e) {
-        if (signal.aborted) {
-          return
-        }
-        console.error('Failed to load usage stats:', e)
-      }
-      // Load attribute values
-      if (attributeDefinitions.value.length > 0) {
-        try {
-          const attrResponse = await adminAPI.userAttributes.getBatchUserAttributes(userIds)
-          if (signal.aborted) {
-            return
-          }
-          userAttributeValues.value = attrResponse.attributes
-        } catch (e) {
-          if (signal.aborted) {
-            return
-          }
-          console.error('Failed to load user attribute values:', e)
-        }
-      }
+      const seq = ++secondaryDataSeq
+      window.setTimeout(() => {
+        if (signal.aborted || seq !== secondaryDataSeq) return
+        void loadUsersSecondaryData(userIds, signal, seq)
+      }, 50)
     }
   } catch (error: any) {
     const errorInfo = error as { name?: string; code?: string }
@@ -975,7 +1084,7 @@ const applyFilter = () => {
   loadUsers()
 }
 
-const handleEdit = (user: User) => {
+const handleEdit = (user: AdminUser) => {
   editingUser.value = user
   showEditModal.value = true
 }
@@ -985,7 +1094,7 @@ const closeEditModal = () => {
   editingUser.value = null
 }
 
-const handleToggleStatus = async (user: User) => {
+const handleToggleStatus = async (user: AdminUser) => {
   const newStatus = user.status === 'active' ? 'disabled' : 'active'
   try {
     await adminAPI.users.toggleStatus(user.id, newStatus)
@@ -999,7 +1108,7 @@ const handleToggleStatus = async (user: User) => {
   }
 }
 
-const handleViewApiKeys = (user: User) => {
+const handleViewApiKeys = (user: AdminUser) => {
   viewingUser.value = user
   showApiKeysModal.value = true
 }
@@ -1009,7 +1118,7 @@ const closeApiKeysModal = () => {
   viewingUser.value = null
 }
 
-const handleAllowedGroups = (user: User) => {
+const handleAllowedGroups = (user: AdminUser) => {
   allowedGroupsUser.value = user
   showAllowedGroupsModal.value = true
 }
@@ -1019,7 +1128,7 @@ const closeAllowedGroupsModal = () => {
   allowedGroupsUser.value = null
 }
 
-const handleDelete = (user: User) => {
+const handleDelete = (user: AdminUser) => {
   deletingUser.value = user
   showDeleteDialog.value = true
 }
@@ -1038,13 +1147,13 @@ const confirmDelete = async () => {
   }
 }
 
-const handleDeposit = (user: User) => {
+const handleDeposit = (user: AdminUser) => {
   balanceUser.value = user
   balanceOperation.value = 'add'
   showBalanceModal.value = true
 }
 
-const handleWithdraw = (user: User) => {
+const handleWithdraw = (user: AdminUser) => {
   balanceUser.value = user
   balanceOperation.value = 'subtract'
   showBalanceModal.value = true
@@ -1054,16 +1163,48 @@ const closeBalanceModal = () => {
   showBalanceModal.value = false
   balanceUser.value = null
 }
+
+const handleBalanceHistory = (user: AdminUser) => {
+  balanceHistoryUser.value = user
+  showBalanceHistoryModal.value = true
+}
+
+const closeBalanceHistoryModal = () => {
+  showBalanceHistoryModal.value = false
+  balanceHistoryUser.value = null
+}
+
+// Handle deposit from balance history modal
+const handleDepositFromHistory = () => {
+  if (balanceHistoryUser.value) {
+    handleDeposit(balanceHistoryUser.value)
+  }
+}
+
+// Handle withdraw from balance history modal
+const handleWithdrawFromHistory = () => {
+  if (balanceHistoryUser.value) {
+    handleWithdraw(balanceHistoryUser.value)
+  }
+}
+
+// 滚动时关闭菜单
+const handleScroll = () => {
+  closeActionMenu()
+}
+
 onMounted(async () => {
   await loadAttributeDefinitions()
   loadSavedFilters()
   loadSavedColumns()
   loadUsers()
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('scroll', handleScroll, true)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('scroll', handleScroll, true)
   clearTimeout(searchTimeout)
   abortController?.abort()
 })

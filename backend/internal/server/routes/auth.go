@@ -24,11 +24,41 @@ func RegisterAuthRoutes(
 	// 公开接口
 	auth := v1.Group("/auth")
 	{
-		auth.POST("/register", h.Auth.Register)
-		auth.POST("/login", h.Auth.Login)
-		auth.POST("/send-verify-code", h.Auth.SendVerifyCode)
-		// 优惠码验证接口添加速率限制：每分钟最多 10 次
-		auth.POST("/validate-promo-code", rateLimiter.Limit("validate-promo", 10, time.Minute), h.Auth.ValidatePromoCode)
+		// 注册/登录/2FA/验证码发送均属于高风险入口，增加服务端兜底限流（Redis 故障时 fail-close）
+		auth.POST("/register", rateLimiter.LimitWithOptions("auth-register", 5, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.Register)
+		auth.POST("/login", rateLimiter.LimitWithOptions("auth-login", 20, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.Login)
+		auth.POST("/login/2fa", rateLimiter.LimitWithOptions("auth-login-2fa", 20, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.Login2FA)
+		auth.POST("/send-verify-code", rateLimiter.LimitWithOptions("auth-send-verify-code", 5, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.SendVerifyCode)
+		// Token刷新接口添加速率限制：每分钟最多 30 次（Redis 故障时 fail-close）
+		auth.POST("/refresh", rateLimiter.LimitWithOptions("refresh-token", 30, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.RefreshToken)
+		// 登出接口（公开，允许未认证用户调用以撤销Refresh Token）
+		auth.POST("/logout", h.Auth.Logout)
+		// 优惠码验证接口添加速率限制：每分钟最多 10 次（Redis 故障时 fail-close）
+		auth.POST("/validate-promo-code", rateLimiter.LimitWithOptions("validate-promo", 10, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.ValidatePromoCode)
+		// 邀请码验证接口添加速率限制：每分钟最多 10 次（Redis 故障时 fail-close）
+		auth.POST("/validate-invitation-code", rateLimiter.LimitWithOptions("validate-invitation", 10, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.ValidateInvitationCode)
+		// 忘记密码接口添加速率限制：每分钟最多 5 次（Redis 故障时 fail-close）
+		auth.POST("/forgot-password", rateLimiter.LimitWithOptions("forgot-password", 5, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.ForgotPassword)
+		// 重置密码接口添加速率限制：每分钟最多 10 次（Redis 故障时 fail-close）
+		auth.POST("/reset-password", rateLimiter.LimitWithOptions("reset-password", 10, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.ResetPassword)
 		auth.GET("/oauth/linuxdo/start", h.Auth.LinuxDoOAuthStart)
 		auth.GET("/oauth/linuxdo/callback", h.Auth.LinuxDoOAuthCallback)
 	}
@@ -44,5 +74,7 @@ func RegisterAuthRoutes(
 	authenticated.Use(gin.HandlerFunc(jwtAuth))
 	{
 		authenticated.GET("/auth/me", h.Auth.GetCurrentUser)
+		// 撤销所有会话（需要认证）
+		authenticated.POST("/auth/revoke-all-sessions", h.Auth.RevokeAllSessions)
 	}
 }
